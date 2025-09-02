@@ -1,0 +1,90 @@
+datasets:
+  players:
+    id: players
+    description: "Master player index with identifiers and biographical data"
+    loader_fn: import_players
+    partitioning:
+      type: snapshot
+      keys: [snapshot_date]
+    pk: [player_id]
+    required_fields: [player_id]
+    id_columns: [player_id, gsis_id, pfr_id, espn_id, sportradar_id]
+    schema_version: "v1"
+
+  rosters:
+    id: rosters
+    description: "Seasonal team rosters"
+    loader_fn: import_rosters
+    partitioning:
+      type: seasonal
+      keys: [season]
+    pk: [season, team, player_id]
+    required_fields: [season, team, player_id]
+    id_columns: [player_id, gsis_id, pfr_id, espn_id]
+    schema_version: "v1"
+
+  schedules:
+    id: schedules
+    description: "Game schedules by season and week"
+    loader_fn: import_schedules
+    partitioning:
+      type: seasonal
+      keys: [season]
+    pk: [game_id]
+    required_fields: [season, week, game_id]
+    id_columns: [game_id]
+    rename_map:
+      home_team: home_team
+      away_team: away_team
+    schema_version: "v1"
+
+  weekly_player_stats:
+    id: weekly_player_stats
+    description: "Weekly fantasy and statistical lines per player"
+    loader_fn: import_weekly_data
+    partitioning:
+      type: weekly
+      keys: [season, week]
+    pk: [season, week, player_id, team]
+    required_fields: [season, week, player_id]
+    id_columns: [player_id, gsis_id, pfr_id, espn_id]
+    rename_map:
+      recent_team: team
+      player: player_name
+    schema_version: "v1"
+
+  participation:
+    id: participation
+    description: "Snap counts, routes, and participation per player-week"
+    loader_fn: import_snap_counts
+    partitioning:
+      type: weekly
+      keys: [season, week]
+    pk: [season, week, player_id, team]
+    required_fields: [season, week, player_id]
+    id_columns: [player_id, gsis_id, pfr_id, espn_id]
+    schema_version: "v1"
+
+  injuries:
+    id: injuries
+    description: "Player injury reports per week"
+    loader_fn: import_injuries
+    partitioning:
+      type: weekly
+      keys: [season, week]
+    pk: [season, week, player_id, team]
+    required_fields: [season, week, player_id]
+    id_columns: [player_id, gsis_id, pfr_id, espn_id]
+    schema_version: "v1"
+
+  depth_charts:
+    id: depth_charts
+    description: "Team depth charts per week"
+    loader_fn: import_depth_charts
+    partitioning:
+      type: weekly
+      keys: [season, week]
+    pk: [season, week, team, player_id, position]
+    required_fields: [season, week, team, player_id, position]
+    id_columns: [player_id, gsis_id, pfr_id, espn_id]
+    schema_version: "v1"
