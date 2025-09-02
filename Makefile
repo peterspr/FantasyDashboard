@@ -1,4 +1,4 @@
-.PHONY: init up down logs api web dbt-debug dbt-seed dbt-freshness test fmt lint typecheck flow projections
+.PHONY: init up down logs api web dbt-debug dbt-seed dbt-build dbt-docs dbt-freshness test fmt lint typecheck flow projections
 
 init:
 	@echo "Installing local development tools..."
@@ -26,6 +26,13 @@ dbt-debug:
 
 dbt-seed:
 	docker compose run --rm -e POSTGRES_HOST=postgres -e POSTGRES_PORT=5432 -e POSTGRES_DB=fantasy -e POSTGRES_USER=postgres -e POSTGRES_PASSWORD=postgres dwh dbt seed
+
+dbt-build:
+	docker compose run --rm -e POSTGRES_HOST=postgres -e POSTGRES_PORT=5432 -e POSTGRES_DB=fantasy -e POSTGRES_USER=postgres -e POSTGRES_PASSWORD=postgres dwh dbt deps
+	docker compose run --rm -e POSTGRES_HOST=postgres -e POSTGRES_PORT=5432 -e POSTGRES_DB=fantasy -e POSTGRES_USER=postgres -e POSTGRES_PASSWORD=postgres dwh dbt build
+
+dbt-docs:
+	docker compose run --rm -e POSTGRES_HOST=postgres -e POSTGRES_PORT=5432 -e POSTGRES_DB=fantasy -e POSTGRES_USER=postgres -e POSTGRES_PASSWORD=postgres dwh dbt docs generate
 
 dbt-freshness:
 	docker compose run --rm -e POSTGRES_HOST=postgres -e POSTGRES_PORT=5432 -e POSTGRES_DB=fantasy -e POSTGRES_USER=postgres -e POSTGRES_PASSWORD=postgres dwh dbt source freshness
