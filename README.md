@@ -78,6 +78,51 @@ s3://bronze/nflverse/
 └── depth_charts/season=2024/week=01/
 ```
 
+## Stage 3: Baseline Projections
+
+### Running Projections
+
+```bash
+# Build efficiency priors and scoring weights
+make dbt-seed
+
+# Generate weekly and ROS projections  
+make projections
+
+# Example query - top PPR WRs this week
+# Connect to database and run:
+SELECT p.display_name, fp.team, fp.proj_pts, fp.low, fp.high
+FROM marts.f_weekly_projection fp
+JOIN staging.stg_players p ON fp.player_id = p.player_id  
+WHERE fp.season=2024 AND fp.week=10 AND fp.scoring='ppr' AND fp.position='WR'
+ORDER BY fp.proj_pts DESC LIMIT 25;
+```
+
+### Projection Methodology
+
+**Transparent, rules-based projections (no ML):**
+
+1. **Volume Prediction**: Team volume × player usage shares (4-week rolling avg)
+2. **Efficiency with Shrinkage**: Season-to-date rates shrunk to league priors  
+3. **Opponent Adjustment**: Defense vs position modifiers (capped ±30%)
+4. **Scoring**: PPR/Half/Standard with configurable weights
+5. **Confidence**: Binomial/Poisson variance with normal approximation
+
+**Key Models:**
+- `f_weekly_projection` - Weekly projections by player/week/scoring
+- `f_ros_projection` - Rest-of-season aggregates  
+- Seeds: `efficiency_priors.csv`, `scoring_weights.csv`
+
+**Sample Queries:** See `/dwh/models/PROJECTION_QUERIES.md`
+
+### Projection Components
+
+Each projection includes:
+- **Points**: Expected fantasy points with confidence interval (p10/p90)
+- **Components**: Targets, receptions, yards, TDs broken down by type
+- **Inputs**: Usage shares, opponent DvP adjustments, shrinkage factors
+- **Explainers**: Top drivers of projection changes
+
 ## Development
 
 ```bash
@@ -125,9 +170,26 @@ make down
 ## Stage Status
 
 **Stage 0** ✅ - Project scaffold with development environment  
-**Stage 1** ✅ - Data ingestion with MinIO bronze layer and raw PostgreSQL tables  
-**Stage 2** 🚧 - dbt transformations and marts (planned)  
-**Stage 3** 🚧 - ML projections and insights (planned)  
+**Stage 1** ✅ - Data ingestion with MinIO bronze layer and raw PostgreSQL tables
+- ✅ nflverse data loaders with nfl_data_py
+- ✅ S3/MinIO bronze layer with Parquet storage  
+- ✅ PostgreSQL raw schema with JSONB storage
+- ✅ Ops tables for file tracking and manifest
+- ✅ Prefect flows for daily refresh and backfill
+
+**Stage 2** ✅ - dbt transformations and marts 
+- ✅ Staging models for data cleaning and normalization
+- ✅ Gold marts for weekly usage, defense vs position, calendar
+- ✅ Incremental materialization with proper testing
+
+**Stage 3** ✅ - Baseline projections (rules-based, no ML)
+- ✅ Transparent methodology with volume × efficiency × opponent adjustment
+- ✅ Bayesian shrinkage using league efficiency priors  
+- ✅ Weekly and rest-of-season projections by scoring system
+- ✅ Confidence intervals with component breakdowns
+- ✅ Seeds, macros, tests, and sample queries
+
+**Stage 4** 🚧 - API/UI for projections and ML enhancements (planned)  
 
 ## Contributing
 

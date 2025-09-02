@@ -1,4 +1,4 @@
-.PHONY: init up down logs api web dbt-debug test fmt lint typecheck flow
+.PHONY: init up down logs api web dbt-debug dbt-seed dbt-freshness test fmt lint typecheck flow projections
 
 init:
 	@echo "Installing local development tools..."
@@ -24,8 +24,15 @@ web:
 dbt-debug:
 	docker compose run --rm -e POSTGRES_HOST=postgres -e POSTGRES_PORT=5432 -e POSTGRES_DB=fantasy -e POSTGRES_USER=postgres -e POSTGRES_PASSWORD=postgres dwh dbt debug
 
+dbt-seed:
+	docker compose run --rm -e POSTGRES_HOST=postgres -e POSTGRES_PORT=5432 -e POSTGRES_DB=fantasy -e POSTGRES_USER=postgres -e POSTGRES_PASSWORD=postgres dwh dbt seed
+
 dbt-freshness:
 	docker compose run --rm -e POSTGRES_HOST=postgres -e POSTGRES_PORT=5432 -e POSTGRES_DB=fantasy -e POSTGRES_USER=postgres -e POSTGRES_PASSWORD=postgres dwh dbt source freshness
+
+projections:
+	docker compose run --rm -e POSTGRES_HOST=postgres -e POSTGRES_PORT=5432 -e POSTGRES_DB=fantasy -e POSTGRES_USER=postgres -e POSTGRES_PASSWORD=postgres dwh dbt seed
+	docker compose run --rm -e POSTGRES_HOST=postgres -e POSTGRES_PORT=5432 -e POSTGRES_DB=fantasy -e POSTGRES_USER=postgres -e POSTGRES_PASSWORD=postgres dwh dbt build --select int_team_volume_preds f_weekly_projection f_ros_projection
 
 test:
 	docker compose exec app-api python -m pytest

@@ -17,6 +17,37 @@ clean-targets:
   - "target"
   - "dbt_packages"
 
+# Seeds configuration
+seeds:
+  fantasy_insights:
+    efficiency_priors:
+      +column_types:
+        position: varchar(5)
+        metric: varchar(50)
+        mean: numeric
+        k: numeric
+        var: numeric
+    scoring_weights:
+      +column_types:
+        scoring: varchar(10)
+        reception: numeric
+        rec_yd: numeric
+        rec_td: numeric
+        rush_yd: numeric
+        rush_td: numeric
+        pass_yd: numeric
+        pass_td: numeric
+        int: numeric
+        fumble: numeric
+
+# Variables for projection configuration
+vars:
+  projections:
+    z_score: 1.28155   # p10/p90 confidence interval
+    dvp_cap_low: 0.7   # Lower bound for opponent adjustment
+    dvp_cap_high: 1.3  # Upper bound for opponent adjustment
+    as_of_date: "{{ run_started_at() }}"
+
 # Configuring models
 models:
   fantasy_insights:
