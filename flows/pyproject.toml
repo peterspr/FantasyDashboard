@@ -1,0 +1,42 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "fantasy-insights-flows"
+version = "0.0.1"
+description = "Fantasy Insights Prefect flows"
+requires-python = ">=3.11"
+dependencies = [
+    "prefect>=2.14.0,<3.0.0",
+    "pandas>=2.0.0,<3.0.0", 
+    "pyarrow>=10.0.0,<20.0.0",
+    "boto3>=1.26.0,<2.0.0",
+    "s3fs>=2023.1.0,<2025.0.0",
+    "sqlalchemy>=2.0.0,<3.0.0",
+    "psycopg[binary]>=3.0.0,<4.0.0",
+    "nfl-data-py>=0.3.0",
+    "python-dotenv>=1.0.0,<2.0.0",
+    "tqdm>=4.64.0,<5.0.0",
+    "pyyaml>=6.0.0,<7.0.0",
+    "pytest>=7.4.0,<8.0.0",
+]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.ruff.lint]
+select = [
+    "E",   # pycodestyle errors
+    "W",   # pycodestyle warnings  
+    "F",   # pyflakes
+    "I",   # isort
+    "B",   # flake8-bugbear
+    "C4",  # flake8-comprehensions
+    "UP",  # pyupgrade
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
