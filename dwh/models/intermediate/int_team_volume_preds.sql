@@ -11,16 +11,16 @@ WITH team_weekly_totals AS (
     season,
     week,
     team,
-    SUM(targets) AS targets,
-    SUM(routes_run) AS routes,
-    SUM(carries) AS rush_att,
-    SUM(attempts) AS pass_att
-  FROM {{ ref('stg_weekly_player_stats') }}
+    team_targets AS targets,
+    0 AS routes,  -- Will get from participation data later
+    team_rush_att AS rush_att,
+    team_pass_att AS pass_att,
+    created_at
+  FROM {{ ref('int_team_week_totals') }}
   WHERE 1=1
     {% if is_incremental() %}
       AND created_at > (SELECT MAX(created_at) FROM {{ this }})
     {% endif %}
-  GROUP BY season, week, team
 ),
 
 rolling_averages AS (

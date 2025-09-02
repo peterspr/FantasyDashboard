@@ -1,0 +1,116 @@
+version: 2
+
+models:
+  - name: int_team_week_totals
+    description: "Team-level aggregated statistics by season and week"
+    columns:
+      - name: season
+        description: "NFL season year"
+        tests:
+          - not_null
+      - name: week
+        description: "NFL week number"
+        tests:
+          - not_null
+      - name: team
+        description: "Team abbreviation"
+        tests:
+          - not_null
+      - name: team_targets
+        description: "Total team targets for the week"
+      - name: team_rush_att
+        description: "Total team rush attempts for the week"
+      - name: team_pass_att
+        description: "Total team pass attempts for the week"
+    tests:
+      - unique:
+          column_name: "season || '-' || week || '-' || team"
+
+  - name: int_player_week_usage
+    description: "Player usage metrics with team context by week"
+    columns:
+      - name: season
+        description: "NFL season year"
+        tests:
+          - not_null
+      - name: week
+        description: "NFL week number"
+        tests:
+          - not_null
+      - name: player_id
+        description: "Player identifier"
+        tests:
+          - not_null
+      - name: team
+        description: "Player team for that week"
+        tests:
+          - not_null
+      - name: position
+        description: "Player position"
+      - name: target_share
+        description: "Player's share of team targets (0-1)"
+      - name: rush_share
+        description: "Player's share of team rush attempts (0-1)"
+      - name: route_pct
+        description: "Player's route participation rate (0-1)"
+    tests:
+      - unique:
+          column_name: "season || '-' || week || '-' || player_id || '-' || team"
+      - relationships:
+          to: ref('int_team_week_totals')
+          field: team
+          config:
+            where: "season IS NOT NULL AND week IS NOT NULL"
+
+  - name: int_defense_allowed_raw
+    description: "Defense vs position allowed statistics by week"
+    columns:
+      - name: season
+        description: "NFL season year"
+        tests:
+          - not_null
+      - name: week
+        description: "NFL week number"
+        tests:
+          - not_null
+      - name: def_team
+        description: "Defending team abbreviation"
+        tests:
+          - not_null
+      - name: position
+        description: "Offensive position allowed against"
+        tests:
+          - not_null
+          - accepted_values:
+              values: ['QB', 'RB', 'WR', 'TE']
+      - name: allowed_ppr_points
+        description: "PPR fantasy points allowed to position"
+      - name: sample_players
+        description: "Number of players contributing to the total"
+    tests:
+      - unique:
+          column_name: "season || '-' || week || '-' || def_team || '-' || position"
+
+  - name: int_defense_allowed_rolling  
+    description: "Defense vs position with rolling averages for trend analysis"
+    columns:
+      - name: season
+        description: "NFL season year"
+        tests:
+          - not_null
+      - name: week
+        description: "NFL week number"  
+        tests:
+          - not_null
+      - name: def_team
+        description: "Defending team abbreviation"
+        tests:
+          - not_null
+      - name: position
+        description: "Offensive position"
+        tests:
+          - not_null
+      - name: rolling_allowed_ppr_4w
+        description: "4-week rolling average PPR points allowed"
+      - name: rolling_allowed_ppr_6w
+        description: "6-week rolling average PPR points allowed"
