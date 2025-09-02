@@ -1,0 +1,146 @@
+version: 2
+
+models:
+  - name: stg_players
+    description: "Cleaned and typed player master data from raw players table"
+    columns:
+      - name: player_id
+        description: "Primary player identifier (GSIS ID)"
+        tests:
+          - not_null
+      - name: display_name
+        description: "Player display name"
+      - name: position
+        description: "Standardized player position"
+        tests:
+          - accepted_values:
+              values: ['QB', 'RB', 'WR', 'TE', 'K', 'DEF', 'FB', 'OL', 'DL', 'LB', 'DB', 'ST']
+      - name: status
+        description: "Player roster status"
+
+  - name: stg_rosters
+    description: "Cleaned roster data by season and team"
+    columns:
+      - name: season
+        description: "NFL season year"
+        tests:
+          - not_null
+      - name: team
+        description: "Team abbreviation"
+        tests:
+          - not_null
+      - name: player_id
+        description: "Player identifier"
+        tests:
+          - not_null
+      - name: position
+        description: "Listed position on roster"
+
+  - name: stg_schedules
+    description: "Game schedules with scores and metadata"
+    columns:
+      - name: season
+        description: "NFL season year"
+        tests:
+          - not_null
+      - name: week
+        description: "Week number"
+        tests:
+          - not_null
+      - name: game_id
+        description: "Unique game identifier"
+        tests:
+          - not_null
+      - name: game_type
+        description: "Game type (REG, POST, etc.)"
+      - name: home_team
+        description: "Home team abbreviation"
+        tests:
+          - not_null
+      - name: away_team
+        description: "Away team abbreviation" 
+        tests:
+          - not_null
+
+  - name: stg_weekly_player_stats
+    description: "Weekly player statistics with fantasy-relevant metrics"
+    columns:
+      - name: season
+        description: "NFL season year"
+        tests:
+          - not_null
+      - name: week
+        description: "Week number"
+        tests:
+          - not_null
+      - name: player_id
+        description: "Player identifier"
+        tests:
+          - not_null
+      - name: team
+        description: "Player team for that week"
+        tests:
+          - not_null
+    tests:
+      - unique:
+          column_name: "season || '-' || week || '-' || player_id || '-' || team"
+
+  - name: stg_participation
+    description: "Player snap counts and participation rates"
+    columns:
+      - name: season
+        description: "NFL season year"
+        tests:
+          - not_null
+      - name: week
+        description: "Week number"
+        tests:
+          - not_null
+      - name: player_id
+        description: "Player identifier"
+        tests:
+          - not_null
+      - name: team
+        description: "Team abbreviation"
+        tests:
+          - not_null
+
+  - name: stg_injuries
+    description: "Weekly injury reports and statuses"
+    columns:
+      - name: season
+        description: "NFL season year"
+        tests:
+          - not_null
+      - name: week
+        description: "Week number"
+        tests:
+          - not_null
+      - name: player_id
+        description: "Player identifier"
+        tests:
+          - not_null
+      - name: team
+        description: "Team abbreviation"
+        tests:
+          - not_null
+
+  - name: stg_depth_charts
+    description: "Team depth charts by position and week"
+    columns:
+      - name: season
+        description: "NFL season year"
+        tests:
+          - not_null
+      - name: week
+        description: "Week number"
+        tests:
+          - not_null
+      - name: player_id
+        description: "Player identifier"
+        tests:
+          - not_null
+      - name: team
+        description: "Team abbreviation"
+        tests:
+          - not_null
