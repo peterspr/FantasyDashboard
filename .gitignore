@@ -63,6 +63,7 @@ build/
 *.pem
 .vscode/
 .idea/
+CLAUDE.md
 
 # Logs
 logs
