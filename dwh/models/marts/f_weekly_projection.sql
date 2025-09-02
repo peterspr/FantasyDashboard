@@ -26,7 +26,7 @@ WITH usage_with_opponent AS (
     AND (u.team = s.home_team OR u.team = s.away_team)
   WHERE 1=1
     {% if is_incremental() %}
-      AND u.created_at > (SELECT MAX(created_at) FROM {{ this }})
+      AND u.built_at > (SELECT MAX(built_at) FROM {{ this }})
     {% endif %}
 ),
 
@@ -78,11 +78,8 @@ volume_predictions AS (
     bd.rush_share_4w * bd.team_rush_att_pred AS rush_att_pred,
     CASE 
       WHEN bd.position = 'QB' THEN 
-        COALESCE(
-          {{ ewa('ps.attempts', 'bd.week', 'bd.season, bd.player_id') }},
-          bd.team_pass_att_pred
-        )
-      ELSE bd.target_share_4w * bd.team_targets_pred * 0.1  -- Non-QBs get minimal pass attempts
+        COALESCE(bd.team_pass_att_pred, 0)  -- QBs get team pass attempts
+      ELSE 0  -- Non-QBs get no pass attempts for projections
     END AS pass_att_pred,
     
     -- YTD rates for shrinkage

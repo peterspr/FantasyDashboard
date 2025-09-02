@@ -1,0 +1,109 @@
+version: 2
+
+models:
+  - name: f_calendar_weeks
+    description: "Calendar reference for NFL seasons and weeks"
+    columns:
+      - name: season
+        description: "NFL season year"
+        tests:
+          - not_null
+      - name: week
+        description: "NFL week number"
+        tests:
+          - not_null
+      - name: week_start_date
+        description: "First game start date for the week"
+      - name: week_end_date
+        description: "Last game start date for the week"
+      - name: week_status
+        description: "Week status relative to current date"
+        tests:
+          - accepted_values:
+              values: ['completed', 'current', 'future']
+    tests:
+      - unique:
+          column_name: "season || '-' || week"
+
+  - name: f_weekly_usage
+    description: "Player usage metrics optimized for projection and analysis consumption"
+    columns:
+      - name: season
+        description: "NFL season year"
+        tests:
+          - not_null
+      - name: week
+        description: "NFL week number"
+        tests:
+          - not_null
+      - name: player_id
+        description: "Player identifier"
+        tests:
+          - not_null
+      - name: team
+        description: "Player team"
+        tests:
+          - not_null
+      - name: position
+        description: "Player position"
+        tests:
+          - accepted_values:
+              values: ['QB', 'RB', 'WR', 'TE', 'K', 'DEF', 'FB', 'OL', 'DL', 'LB', 'DB']
+      - name: target_share
+        description: "Player's share of team targets (0-1)"
+      - name: rush_share
+        description: "Player's share of team rush attempts (0-1)"
+      - name: route_pct
+        description: "Player's route participation rate (0-1)"
+      - name: target_share_4w
+        description: "4-week rolling average target share"
+      - name: rush_share_4w
+        description: "4-week rolling average rush share"
+      - name: route_pct_4w
+        description: "4-week rolling average route percentage"
+      - name: built_at
+        description: "Timestamp when record was created"
+        tests:
+          - not_null
+    tests:
+      - unique:
+          column_name: "season || '-' || week || '-' || player_id"
+
+  - name: f_defense_vs_pos
+    description: "Defense vs position performance with league context for opponent adjustments"
+    columns:
+      - name: season
+        description: "NFL season year"
+        tests:
+          - not_null
+      - name: week
+        description: "NFL week number"
+        tests:
+          - not_null
+      - name: team
+        description: "Defending team abbreviation"
+        tests:
+          - not_null
+      - name: position
+        description: "Offensive position defended against"
+        tests:
+          - not_null
+          - accepted_values:
+              values: ['QB', 'RB', 'WR', 'TE']
+      - name: allowed_ppr_week
+        description: "PPR fantasy points allowed this week"
+      - name: rolling_allowed_ppr_4w
+        description: "4-week rolling average PPR points allowed"
+      - name: rolling_allowed_ppr_6w
+        description: "6-week rolling average PPR points allowed"
+      - name: schedule_adj_index
+        description: "Defense performance relative to league average (1.0 = average)"
+      - name: sample_players
+        description: "Number of players contributing to weekly total"
+      - name: built_at
+        description: "Timestamp when record was created"
+        tests:
+          - not_null
+    tests:
+      - unique:
+          column_name: "season || '-' || week || '-' || team || '-' || position"
