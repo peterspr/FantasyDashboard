@@ -1,0 +1,155 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  api:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: fantasy
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+          
+      - name: Install dependencies
+        working-directory: ./app-api
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          
+      - name: Run ruff check
+        working-directory: ./app-api
+        run: ruff check .
+        
+      - name: Run ruff format check
+        working-directory: ./app-api
+        run: ruff format --check .
+        
+      - name: Run mypy
+        working-directory: ./app-api
+        run: mypy .
+        
+      - name: Run tests
+        working-directory: ./app-api
+        run: pytest
+        env:
+          DATABASE_URL: postgresql+psycopg://postgres:postgres@localhost:5432/fantasy
+
+  web:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Set up Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          
+      - name: Install pnpm
+        run: npm install -g pnpm
+        
+      - name: Install dependencies
+        working-directory: ./app-web
+        run: pnpm install --frozen-lockfile
+        
+      - name: Run ESLint
+        working-directory: ./app-web
+        run: pnpm lint
+        
+      - name: Run type check
+        working-directory: ./app-web
+        run: pnpm type-check
+        
+      - name: Build
+        working-directory: ./app-web
+        run: pnpm build
+
+  flows:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+          
+      - name: Install dependencies
+        working-directory: ./flows
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          
+      - name: Run ruff check
+        working-directory: ./flows
+        run: ruff check .
+        
+      - name: Run unit tests
+        working-directory: ./flows
+        run: pytest tests/test_registry.py -v
+
+  dbt:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: fantasy
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+          
+      - name: Install dbt
+        run: |
+          python -m pip install --upgrade pip
+          pip install dbt-core>=1.8.0 dbt-postgres>=1.8.0
+          
+      - name: Lint YAML
+        working-directory: ./dwh
+        run: |
+          pip install yamllint
+          yamllint models/
+          
+      - name: Run dbt debug
+        working-directory: ./dwh
+        run: dbt debug
+        env:
+          POSTGRES_HOST: localhost
+          POSTGRES_PORT: 5432
+          POSTGRES_DB: fantasy
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          DBT_PROFILES_DIR: .
