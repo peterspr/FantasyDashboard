@@ -6,10 +6,101 @@ This directory contains the dbt models for transforming raw NFL data into analyt
 
 ```
 models/
-├── staging/          # Raw data transformations and cleaning
-├── intermediate/     # Business logic and derived metrics  
-└── marts/           # Final analytical tables
+├── staging/          # Raw data transformations and cleaning (views)
+├── intermediate/     # Business logic and derived metrics (incremental tables)
+└── marts/           # Final analytical tables (tables/incremental)
 ```
+
+## Stage 2: Data Transformations
+
+### Overview
+
+Stage 2 transforms raw JSONB data from Stage 1 into typed, well-tested dbt models ready for consumption by projections and APIs. The architecture follows a three-layer pattern:
+
+1. **Staging Layer**: Parse JSONB columns into typed fields with light transformations
+2. **Intermediate Layer**: Business logic, team aggregations, and usage calculations
+3. **Gold Marts**: Fast, query-optimized fact tables for analysis and projections
+
+### Staging Models (`staging/`)
+
+Clean, typed views that extract and standardize columns from raw JSONB data:
+
+- `stg_players`: Player master with standardized positions and identifiers
+- `stg_rosters`: Season rosters with team assignments
+- `stg_schedules`: Game schedules with completion status
+- `stg_weekly_player_stats`: Fantasy-relevant player statistics by week
+- `stg_participation`: Snap counts and route participation
+- `stg_injuries`: Injury reports and game status
+- `stg_depth_charts`: Team depth charts with positional rankings
+
+**Key Features:**
+- JSONB extraction using `j_get_*` macros for safe null handling
+- Position standardization (QB, RB, WR, TE, etc.)
+- Data type casting with proper defaults
+
+### Intermediate Models (`intermediate/`)
+
+Business logic layer computing team context and advanced metrics:
+
+- `int_team_week_totals`: Team-level volume aggregates (targets, carries, attempts)
+- `int_player_week_usage`: Player usage with team context and shares
+- `int_defense_allowed_raw`: Defense-vs-position allowed statistics
+- `int_defense_allowed_rolling`: Rolling averages for defensive performance
+
+**Usage Calculations:**
+- `target_share = player_targets / team_targets`
+- `rush_share = player_carries / team_carries`
+- `route_pct = player_routes / team_routes`
+
+**Incremental Strategy:**
+- Materialized as incremental tables with `(season, week, key)` unique constraints
+- Uses `_ingested_at` timestamps to process only new data
+
+### Gold Marts (`marts/`)
+
+Query-optimized fact tables for analysis and projection consumption:
+
+#### `f_weekly_usage`
+Player usage metrics with 4-week rolling averages:
+- **Keys**: `(season, week, player_id)`
+- **Core Metrics**: `target_share`, `rush_share`, `route_pct`, `snap_pct`
+- **Rolling Averages**: `target_share_4w`, `rush_share_4w`, `route_pct_4w`, `snap_pct_4w`
+- **Raw Volumes**: `targets`, `routes_run`, `rush_att`, `receptions`
+
+Used by Stage 3 projections for volume prediction based on recent usage trends.
+
+#### `f_defense_vs_pos`  
+Defense-vs-position performance with league context:
+- **Keys**: `(season, week, team, position)`
+- **Performance**: `allowed_ppr_week`, `rolling_allowed_ppr_4w`, `rolling_allowed_ppr_6w`
+- **Context**: `schedule_adj_index` (defense performance relative to league average)
+
+Used by Stage 3 projections for opponent adjustments.
+
+#### `f_calendar_weeks`
+Week calendar with status tracking:
+- **Keys**: `(season, week)`
+- **Metadata**: `week_start_date`, `week_end_date`, `week_status`
+- **Status**: `completed`, `current`, `future`
+
+Used by Stage 3 ROS projections to determine remaining weeks.
+
+**Performance Features:**
+- Strategic indexes on common query patterns
+- Incremental materialization where applicable
+- Optimized for projection model consumption
+
+### Utilities
+
+**Macros (`macros/`):**
+- `jsonb_utils.sql`: Safe JSONB extraction (`j_get_text`, `j_get_num`, `j_get_int`)
+- `time_windows.sql`: Rolling averages (`rolling_avg`)
+- `keys.sql`: Composite key utilities
+
+**Quality Assurance:**
+- Comprehensive tests on key constraints and data quality
+- Source freshness monitoring on raw tables
+- Relationship tests between layers
 
 ## Stage 3: Baseline Projections
 
