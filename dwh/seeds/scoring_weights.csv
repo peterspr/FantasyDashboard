@@ -1,0 +1,4 @@
+scoring,reception,rec_yd,rec_td,rush_yd,rush_td,pass_yd,pass_td,int,fumble
+ppr,1.0,0.1,6,0.1,6,0.04,4,-2,-2
+half,0.5,0.1,6,0.1,6,0.04,4,-2,-2
+std,0.0,0.1,6,0.1,6,0.04,4,-2,-2

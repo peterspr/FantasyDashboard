@@ -1,0 +1,15 @@
+position,metric,mean,k,var
+WR,catch_rate,0.62,50,0.23
+WR,rec_yds_per_rec,12.0,200,20.0
+WR,rec_td_per_target,0.05,150,0.0475
+RB,catch_rate,0.72,40,0.20
+RB,rec_yds_per_rec,8.5,150,12.0
+RB,rec_td_per_target,0.04,120,0.0384
+RB,rush_yds_per_att,4.2,150,3.0
+RB,rush_td_per_rush,0.035,150,0.0338
+TE,catch_rate,0.65,50,0.2275
+TE,rec_yds_per_rec,10.4,200,16.0
+TE,rec_td_per_target,0.045,140,0.0430
+QB,pass_yds_per_att,7.0,200,4.0
+QB,pass_td_per_att,0.045,200,0.0430
+QB,int_per_att,0.025,200,0.0244
