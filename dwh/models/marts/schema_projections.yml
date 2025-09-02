@@ -1,0 +1,134 @@
+version: 2
+
+models:
+  - name: f_weekly_projection
+    description: "Weekly fantasy projections with transparent, rules-based methodology"
+    columns:
+      - name: season
+        description: "NFL season year"
+        tests:
+          - not_null
+      - name: week
+        description: "NFL week number"
+        tests:
+          - not_null
+      - name: player_id
+        description: "Unique player identifier"
+        tests:
+          - not_null
+          - relationships:
+              to: ref('f_weekly_usage')
+              field: player_id
+      - name: team
+        description: "Player's team abbreviation"
+        tests:
+          - not_null
+      - name: position
+        description: "Player position (QB, RB, WR, TE)"
+        tests:
+          - not_null
+          - accepted_values:
+              values: ['QB', 'RB', 'WR', 'TE']
+      - name: scoring
+        description: "Fantasy scoring system"
+        tests:
+          - not_null
+          - accepted_values:
+              values: ['ppr', 'half', 'std']
+      - name: proj_pts
+        description: "Projected fantasy points for the week"
+        tests:
+          - not_null
+      - name: low
+        description: "Lower confidence bound (~p10)"
+        tests:
+          - not_null
+      - name: high
+        description: "Upper confidence bound (~p90)"
+        tests:
+          - not_null
+      - name: components_json
+        description: "JSON object with projection components and key inputs"
+        tests:
+          - not_null
+      - name: built_at
+        description: "Timestamp when projection was generated"
+        tests:
+          - not_null
+    tests:
+      - unique:
+          column_name: "season || '-' || week || '-' || player_id || '-' || scoring"
+      - dbt_utils.expression_is_true:
+          expression: "low <= proj_pts"
+          config:
+            where: "proj_pts IS NOT NULL AND low IS NOT NULL"
+      - dbt_utils.expression_is_true:
+          expression: "proj_pts <= high"
+          config:
+            where: "proj_pts IS NOT NULL AND high IS NOT NULL"
+
+  - name: f_ros_projection
+    description: "Rest-of-season fantasy projections aggregating future weeks"
+    columns:
+      - name: season
+        description: "NFL season year"
+        tests:
+          - not_null
+      - name: player_id
+        description: "Unique player identifier"
+        tests:
+          - not_null
+          - relationships:
+              to: ref('stg_players')
+              field: player_id
+      - name: team
+        description: "Player's team abbreviation"
+        tests:
+          - not_null
+      - name: position
+        description: "Player position (QB, RB, WR, TE)"
+        tests:
+          - not_null
+          - accepted_values:
+              values: ['QB', 'RB', 'WR', 'TE']
+      - name: scoring
+        description: "Fantasy scoring system"
+        tests:
+          - not_null
+          - accepted_values:
+              values: ['ppr', 'half', 'std']
+      - name: proj_pts_total
+        description: "Total projected fantasy points for rest of season"
+        tests:
+          - not_null
+      - name: low
+        description: "Lower confidence bound for total ROS points"
+        tests:
+          - not_null
+      - name: high
+        description: "Upper confidence bound for total ROS points"
+        tests:
+          - not_null
+      - name: per_week_json
+        description: "JSON array with per-week projections for remaining weeks"
+        tests:
+          - not_null
+      - name: weeks_remaining
+        description: "Number of weeks remaining in season"
+        tests:
+          - not_null
+      - name: built_at
+        description: "Timestamp when projection was generated"
+        tests:
+          - not_null
+    tests:
+      - unique:
+          column_name: "season || '-' || player_id || '-' || scoring"
+      - dbt_utils.expression_is_true:
+          expression: "low <= proj_pts_total"
+          config:
+            where: "proj_pts_total IS NOT NULL AND low IS NOT NULL"
+      - dbt_utils.expression_is_true:
+          expression: "proj_pts_total <= high"
+          config:
+            where: "proj_pts_total IS NOT NULL AND high IS NOT NULL"
