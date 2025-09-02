@@ -73,6 +73,9 @@ target/
 dbt_packages/
 logs/
 
+# data
+nfl_data
+
 # Database
 *.db
 *.sqlite3
