@@ -29,11 +29,18 @@ async def get_ros_projections(
     if scoring not in ["ppr", "half_ppr", "standard"]:
         raise HTTPException(status_code=400, detail="Scoring must be ppr, half_ppr, or standard")
     
+    # Translate API scoring values to database values
+    db_scoring = {
+        "ppr": "ppr",
+        "half_ppr": "half", 
+        "standard": "std"
+    }[scoring]
+    
     if sort_by not in ["proj_total", "low", "high", "name"]:
         raise HTTPException(status_code=400, detail="Invalid sort_by field")
     
     params = {
-        "scoring": scoring,
+        "scoring": db_scoring,
         "search": search,
         "position": position,
         "team": team,
@@ -46,6 +53,10 @@ async def get_ros_projections(
     cache_key = f"/v1/ros/{season}"
     cached = await cache.get(cache_key, params, settings.PROJECTION_PROVIDER)
     if cached:
+        # Convert back to API scoring value for cached response
+        cached["scoring"] = scoring
+        for item in cached.get("items", []):
+            item["scoring"] = scoring
         response.headers["ETag"] = f'"{hash(str(cached))}"'
         response.headers["Cache-Control"] = "public, max-age=300, s-maxage=1800"
         response.headers["X-Total-Count"] = str(cached["total"])
@@ -54,7 +65,7 @@ async def get_ros_projections(
     provider = get_provider(settings.PROJECTION_PROVIDER)
     result = await provider.ros(
         season=season,
-        scoring=scoring,
+        scoring=db_scoring,
         search=search,
         position=position,
         team=team,
@@ -63,6 +74,11 @@ async def get_ros_projections(
         limit=limit,
         offset=offset
     )
+    
+    # Convert back to API scoring value for response
+    result["scoring"] = scoring
+    for item in result.get("items", []):
+        item["scoring"] = scoring
     
     await cache.set(cache_key, params, settings.PROJECTION_PROVIDER, result)
     response.headers["ETag"] = f'"{hash(str(result))}"'

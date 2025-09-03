@@ -101,6 +101,7 @@ class UsageWeeklyItem(BaseModel):
     season: int
     week: int
     player_id: str
+    name: Optional[str] = None
     team: Optional[str]
     position: Optional[str]
     snap_pct: Optional[float] = None
@@ -138,6 +139,40 @@ class UsageWeeklyItem(BaseModel):
 
 class PlayersList(BaseModel):
     items: List[PlayerOut]
+    total: int
+    limit: int
+    offset: int
+
+class ActualPointsItem(BaseModel):
+    player_id: str
+    name: str
+    team: Optional[str]
+    position: Optional[str]
+    scoring: str
+    actual_points: float
+    season: int
+    week: int
+    
+    model_config = ConfigDict(
+        json_schema_extra={
+            "example": {
+                "player_id": "00-0030506",
+                "name": "Justin Jefferson",
+                "team": "MIN",
+                "position": "WR",
+                "scoring": "ppr",
+                "actual_points": 22.4,
+                "season": 2024,
+                "week": 10
+            }
+        }
+    )
+
+class ActualPointsList(BaseModel):
+    season: int
+    week: int
+    scoring: str
+    items: List[ActualPointsItem]
     total: int
     limit: int
     offset: int

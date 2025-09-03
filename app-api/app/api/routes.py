@@ -2,7 +2,7 @@ from typing import List, Dict, Any
 from fastapi import APIRouter, HTTPException
 from sqlalchemy import create_engine, text
 from app.core.settings import get_settings
-from app.api.routers import players, projections, ros, usage, scoring
+from app.api.routers import players, projections, ros, usage, scoring, actual
 
 router = APIRouter()
 
@@ -12,6 +12,7 @@ router.include_router(projections.router)
 router.include_router(ros.router)
 router.include_router(usage.router)
 router.include_router(scoring.router)
+router.include_router(actual.router)
 
 @router.get("/health")
 async def health_check() -> dict[str, str]:

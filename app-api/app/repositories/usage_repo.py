@@ -20,7 +20,12 @@ class UsageRepository:
                 params.extend(weeks)
             
             query = f"""
-                WITH usage_data AS (
+                WITH dedupe_players AS (
+                    SELECT DISTINCT ON (player_id) 
+                        player_id, display_name, first_name, last_name
+                    FROM dwh_staging.stg_players
+                ),
+                usage_data AS (
                     SELECT 
                         season,
                         week,
@@ -57,6 +62,7 @@ class UsageRepository:
                     u.season,
                     u.week,
                     u.player_id,
+                    COALESCE(CASE WHEN pl.display_name != '' THEN pl.display_name ELSE concat(pl.first_name, ' ', pl.last_name) END, u.player_id) as name,
                     u.team,
                     u.position,
                     u.snap_pct,
@@ -70,6 +76,7 @@ class UsageRepository:
                     p.low,
                     p.high
                 FROM usage_data u
+                LEFT JOIN dedupe_players pl ON u.player_id = pl.player_id
                 LEFT JOIN proj_data p ON u.season = p.season 
                     AND u.week = p.week 
                     AND u.player_id = p.player_id
@@ -79,11 +86,16 @@ class UsageRepository:
             rows = await conn.fetch(query, *params)
             
             items = []
+            player_name = None  # We'll get this from the first row
             for row in rows:
+                if player_name is None:
+                    player_name = row["name"]
+                    
                 items.append({
                     "season": row["season"],
                     "week": row["week"],
                     "player_id": row["player_id"],
+                    "name": row["name"],
                     "team": row["team"],
                     "position": row["position"],
                     "snap_pct": float(row["snap_pct"]) if row["snap_pct"] is not None else None,
@@ -101,6 +113,7 @@ class UsageRepository:
             return {
                 "season": season,
                 "player_id": player_id,
+                "name": player_name,
                 "items": items,
                 "total": len(items)
             }

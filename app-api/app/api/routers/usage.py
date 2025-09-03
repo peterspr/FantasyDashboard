@@ -13,6 +13,7 @@ usage_repo = UsageRepository()
 class UsageList(BaseModel):
     season: int
     player_id: str
+    name: Optional[str] = None
     items: List[UsageWeeklyItem]
     total: int
 
