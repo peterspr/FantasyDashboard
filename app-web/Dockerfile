@@ -10,7 +10,7 @@ RUN npm install -g pnpm
 COPY package.json pnpm-lock.yaml ./
 
 # Install dependencies
-RUN pnpm install --frozen-lockfile
+RUN pnpm install --force
 
 # Copy source code
 COPY . .
@@ -18,7 +18,10 @@ COPY . .
 # Create non-root user
 RUN addgroup -g 1001 -S nodejs
 RUN adduser -S nextjs -u 1001
-RUN chown -R nextjs:nodejs /app
+
+# Create .next directory and set permissions
+RUN mkdir -p /app/.next && chown -R nextjs:nodejs /app
+
 USER nextjs
 
 # Health check
