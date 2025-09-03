@@ -27,9 +27,9 @@ SELECT DISTINCT ON (season, week, {{ j_get_text('data', 'player_id') }}, {{ j_ge
   {{ j_get_num('data', 'receiving_tds') }} AS receiving_tds,
   
   -- Other stats
-  {{ j_get_num('data', 'fumbles') }} AS fumbles,
-  {{ j_get_num('data', 'fumbles_lost') }} AS fumbles_lost,
-  {{ j_get_num('data', 'two_point_conversions') }} AS two_ptm,
+  COALESCE({{ j_get_num('data', 'fumbles') }}, {{ j_get_num('data', 'rushing_fumbles') }} + {{ j_get_num('data', 'receiving_fumbles') }}) AS fumbles,
+  COALESCE({{ j_get_num('data', 'fumbles_lost') }}, {{ j_get_num('data', 'rushing_fumbles_lost') }} + {{ j_get_num('data', 'receiving_fumbles_lost') }}) AS fumbles_lost,
+  COALESCE({{ j_get_num('data', 'two_point_conversions') }}, {{ j_get_num('data', 'passing_2pt_conversions') }} + {{ j_get_num('data', 'rushing_2pt_conversions') }} + {{ j_get_num('data', 'receiving_2pt_conversions') }}) AS two_ptm,
   {{ j_get_num('data', 'target_share') }} AS target_share,
   {{ j_get_num('data', 'air_yards_share') }} AS air_yards_share,
   {{ j_get_num('data', 'wopr') }} AS wopr,

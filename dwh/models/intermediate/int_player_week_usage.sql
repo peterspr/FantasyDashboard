@@ -14,8 +14,12 @@ WITH base_player_week AS (
     s.team,
     COALESCE(r.position, s.position) AS position,
     
-    -- Raw volume stats
-    COALESCE(p.routes_run, 0) AS routes_run,
+    -- Raw volume stats - estimate routes based on targets for skill positions  
+    CASE 
+      WHEN COALESCE(r.position, s.position) IN ('WR', 'TE', 'RB') THEN 
+        GREATEST(COALESCE(s.targets, 0), COALESCE(s.receptions, 0)) -- At minimum ran routes equal to targets/catches
+      ELSE 0
+    END AS routes_run,
     COALESCE(p.offense_snaps, 0) AS offense_snaps,
     COALESCE(p.offense_snap_pct, 0) AS offense_snap_pct,
     COALESCE(s.targets, 0) AS targets,
@@ -28,10 +32,12 @@ WITH base_player_week AS (
     s._ingested_at
     
   FROM {{ ref('stg_weekly_player_stats') }} s
+  LEFT JOIN {{ ref('stg_players') }} pl 
+    ON s.player_id = pl.gsis_id
   LEFT JOIN {{ ref('stg_participation') }} p 
     ON s.season = p.season 
     AND s.week = p.week 
-    AND s.player_id = p.player_id 
+    AND pl.pfr_id = p.player_id 
     AND s.team = p.team
   LEFT JOIN {{ ref('stg_rosters') }} r 
     ON s.season = r.season 

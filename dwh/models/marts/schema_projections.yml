@@ -28,7 +28,7 @@ models:
         tests:
           - not_null
           - accepted_values:
-              values: ['QB', 'RB', 'WR', 'TE', 'FB', 'CB', 'DE', 'FS', 'G', 'ILB', 'MLB', 'OLB', 'P', 'SS', 'T']
+              values: ['QB', 'RB', 'WR', 'TE', 'FB', 'CB', 'DE', 'FS', 'G', 'ILB', 'MLB', 'OLB', 'P', 'SS', 'T', 'DB', 'DL', 'LB', 'OL']
       - name: scoring
         description: "Fantasy scoring system"
         tests:
@@ -90,7 +90,7 @@ models:
         tests:
           - not_null
           - accepted_values:
-              values: ['QB', 'RB', 'WR', 'TE', 'FB', 'CB', 'DE', 'FS', 'G', 'ILB', 'MLB', 'OLB', 'P', 'SS', 'T']
+              values: ['QB', 'RB', 'WR', 'TE', 'FB', 'CB', 'DE', 'FS', 'G', 'ILB', 'MLB', 'OLB', 'P', 'SS', 'T', 'DB', 'DL', 'LB', 'OL']
       - name: scoring
         description: "Fantasy scoring system"
         tests:
@@ -123,7 +123,7 @@ models:
           - not_null
     tests:
       - unique:
-          column_name: "season || '-' || player_id || '-' || scoring"
+          column_name: "season || '-' || player_id || '-' || team || '-' || scoring"
       - dbt_utils.expression_is_true:
           expression: "low <= proj_pts_total"
           config:

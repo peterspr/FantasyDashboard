@@ -12,7 +12,7 @@ WITH team_weekly_totals AS (
     week,
     team,
     team_targets AS targets,
-    0 AS routes,  -- Will get from participation data later
+    team_targets AS routes,  -- Approximate team routes as team targets for now
     team_rush_att AS rush_att,
     team_pass_att AS pass_att,
     created_at

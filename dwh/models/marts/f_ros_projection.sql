@@ -1,7 +1,7 @@
 {{
   config(
     materialized='incremental',
-    unique_key=['season', 'player_id', 'scoring'],
+    unique_key=['season', 'player_id', 'team', 'scoring'],
     on_schema_change='sync_all_columns',
     post_hook=[
       "CREATE INDEX IF NOT EXISTS idx_ros_proj_season_scoring_pos ON {{ this }} (season, scoring, position)",
