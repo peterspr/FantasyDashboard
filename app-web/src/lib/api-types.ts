@@ -138,6 +138,38 @@ export interface UsageParams {
   weeks?: string;
 }
 
+export interface ActualPointsItem {
+  player_id: string;
+  name: string;
+  team?: string;
+  position?: string;
+  scoring: string;
+  actual_points: number;
+  season: number;
+  week: number;
+}
+
+export interface ActualPointsList {
+  season: number;
+  week: number;
+  scoring: string;
+  items: ActualPointsItem[];
+  total: number;
+  limit: number;
+  offset: number;
+}
+
+export interface ActualParams {
+  scoring?: string;
+  search?: string;
+  position?: string;
+  team?: string;
+  sort_by?: string;
+  sort_desc?: boolean;
+  limit?: number;
+  offset?: number;
+}
+
 // Meta Types
 export interface MetaResponse {
   service: string;

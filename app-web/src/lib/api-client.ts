@@ -3,6 +3,7 @@ import {
   ProjectionList,
   ROSList,
   UsageList,
+  ActualPointsList,
   ScoringPreviewRequest,
   ScoringPresetsResponse,
   MetaResponse,
@@ -11,6 +12,7 @@ import {
   ProjectionsParams,
   ROSParams,
   UsageParams,
+  ActualParams,
 } from './api-types';
 
 class ApiClient {
@@ -103,6 +105,16 @@ class ApiClient {
   ): Promise<UsageList> {
     const queryString = this.buildQueryString(params);
     return this.request<UsageList>(`/v1/usage/${season}/${playerId}${queryString}`);
+  }
+
+  // Actual Points
+  async getActualPoints(
+    season: number,
+    week: number,
+    params: ActualParams = {}
+  ): Promise<ActualPointsList> {
+    const queryString = this.buildQueryString(params);
+    return this.request<ActualPointsList>(`/v1/actual/${season}/${week}${queryString}`);
   }
 
   // Scoring

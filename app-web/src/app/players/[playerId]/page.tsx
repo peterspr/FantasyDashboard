@@ -7,6 +7,7 @@ import { PlayersList } from '@/lib/api-types';
 import { UsageChart } from '@/components/UsageChart';
 import { ProjectionChart } from '@/components/ProjectionChart';
 import { PlayerDetailSkeleton } from '@/components/LoadingSkeleton';
+import { usePlayerActualPoints } from '@/lib/use-player-actual-points';
 
 export default function PlayerDetailPage() {
   const params = useParams();
@@ -27,6 +28,9 @@ export default function PlayerDetailPage() {
   const player = (playersData as PlayersList)?.items?.find((p) => p.player_id === playerId) || 
     usageData?.items?.[0];
 
+  // Use the dynamic hook to fetch actual points for all occurred weeks
+  const { actualDataMap } = usePlayerActualPoints(playerId, season, 'ppr');
+
   if (usageLoading && !usageData) {
     return <PlayerDetailSkeleton />;
   }
@@ -44,11 +48,13 @@ export default function PlayerDetailPage() {
     );
   }
 
+  // Combine projection data with actual data
   const projectionData = usageData?.items.map(item => ({
     week: item.week,
     proj: item.proj || 0,
     low: item.low || 0,
     high: item.high || 0,
+    actual: actualDataMap.get(item.week), // Add actual data if available
   })) || [];
 
   return (
@@ -56,7 +62,7 @@ export default function PlayerDetailPage() {
       {/* Header */}
       <div className="mb-8">
         <h1 className="text-3xl font-bold text-gray-900 mb-2">
-          {player?.name || 'Loading...'}
+          {player?.name || (usageLoading ? 'Loading...' : 'Player Name Unavailable')}
         </h1>
         <div className="flex items-center space-x-4 text-gray-600">
           <span className="font-medium">{player?.position}</span>
@@ -143,10 +149,10 @@ export default function PlayerDetailPage() {
                       {item.proj ? item.proj.toFixed(1) : '-'}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      {item.snap_pct ? (item.snap_pct * 100).toFixed(1) + '%' : '-'}
+                      {(item.snap_pct !== null && item.snap_pct !== undefined) ? (item.snap_pct * 100).toFixed(1) + '%' : '-'}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      {item.route_pct ? (item.route_pct * 100).toFixed(1) + '%' : '-'}
+                      {(item.route_pct !== null && item.route_pct !== undefined) ? (item.route_pct * 100).toFixed(1) + '%' : '-'}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                       {item.target_share ? (item.target_share * 100).toFixed(1) + '%' : '-'}
@@ -155,7 +161,7 @@ export default function PlayerDetailPage() {
                       {item.targets || '-'}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      {item.routes || '-'}
+                      {(item.routes !== null && item.routes !== undefined && item.routes !== 0) ? item.routes : '-'}
                     </td>
                   </tr>
                 ))}

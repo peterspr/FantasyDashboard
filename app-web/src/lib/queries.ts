@@ -5,6 +5,7 @@ import {
   ProjectionsParams,
   ROSParams,
   UsageParams,
+  ActualParams,
   ScoringPreviewRequest,
 } from './api-types';
 
@@ -18,6 +19,8 @@ export const queryKeys = {
   ros: (season: number, params: ROSParams) => ['ros', season, params] as const,
   usage: (season: number, playerId: string, params: UsageParams) => 
     ['usage', season, playerId, params] as const,
+  actual: (season: number, week: number, params: ActualParams) => 
+    ['actual', season, week, params] as const,
   scoringPresets: ['scoring', 'presets'] as const,
 };
 
@@ -85,6 +88,22 @@ export function usePlayerUsage(
     queryFn: () => apiClient.getPlayerUsage(season, playerId, params),
     staleTime: 5 * 60 * 1000, // 5 minutes
     enabled: season > 0 && !!playerId,
+  });
+}
+
+// Actual Points
+export function useActualPoints(
+  season: number,
+  week: number,
+  params: ActualParams = {},
+  enabled: boolean = true
+) {
+  return useQuery({
+    queryKey: queryKeys.actual(season, week, params),
+    queryFn: () => apiClient.getActualPoints(season, week, params),
+    staleTime: 10 * 60 * 1000, // 10 minutes - actual data doesn't change often
+    placeholderData: (previousData) => previousData,
+    enabled: enabled && season > 0 && week > 0,
   });
 }
 

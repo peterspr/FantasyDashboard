@@ -44,6 +44,7 @@ export default function ProjectionsPage() {
     queryParams
   ) as { data: ProjectionList | undefined; isLoading: boolean; error: any };
 
+
   const columns: ColumnDef<ProjectionItem>[] = useMemo(() => [
     {
       accessorKey: 'name',
@@ -81,11 +82,49 @@ export default function ProjectionsPage() {
       header: 'Key Stats',
       cell: ({ row }) => {
         const comp = row.original.components;
+        const position = row.original.position;
+        
+        const getPositionStats = () => {
+          switch (position) {
+            case 'QB':
+              return (
+                <>
+                  {comp.pass_yds_pred && <div>Pass Yds: {formatNumber(comp.pass_yds_pred)}</div>}
+                  {comp.rush_yds_pred && <div>Rush Yds: {formatNumber(comp.rush_yds_pred)}</div>}
+                  {comp.total_td_pred && <div>Total TD: {formatNumber(comp.total_td_pred)}</div>}
+                </>
+              );
+            case 'RB':
+              return (
+                <>
+                  {comp.rush_yds_pred && <div>Rush Yds: {formatNumber(comp.rush_yds_pred)}</div>}
+                  {comp.rec_yds_pred && <div>Rec Yds: {formatNumber(comp.rec_yds_pred)}</div>}
+                  {comp.total_td_pred && <div>Total TD: {formatNumber(comp.total_td_pred)}</div>}
+                </>
+              );
+            case 'WR':
+            case 'TE':
+              return (
+                <>
+                  {comp.rec_yds_pred && <div>Rec Yds: {formatNumber(comp.rec_yds_pred)}</div>}
+                  {comp.rec_pred && <div>Rec: {formatNumber(comp.rec_pred)}</div>}
+                  {comp.total_td_pred && <div>Total TD: {formatNumber(comp.total_td_pred)}</div>}
+                </>
+              );
+            default:
+              return (
+                <>
+                  {comp.targets_pred && <div>Tgt: {formatNumber(comp.targets_pred)}</div>}
+                  {comp.rec_pred && <div>Rec: {formatNumber(comp.rec_pred)}</div>}
+                  {comp.rush_att_pred && <div>Rush: {formatNumber(comp.rush_att_pred)}</div>}
+                </>
+              );
+          }
+        };
+
         return (
           <div className="text-xs space-y-1">
-            {comp.targets_pred && <div>Tgt: {formatNumber(comp.targets_pred)}</div>}
-            {comp.rec_pred && <div>Rec: {formatNumber(comp.rec_pred)}</div>}
-            {comp.rush_att_pred && <div>Rush: {formatNumber(comp.rush_att_pred)}</div>}
+            {getPositionStats()}
           </div>
         );
       },
@@ -154,6 +193,7 @@ export default function ProjectionsPage() {
           
           onClearFilters={handleClearFilters}
         />
+
 
         {error && (
           <div className="bg-red-50 border border-red-200 rounded-md p-4">
