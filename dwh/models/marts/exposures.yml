@@ -4,6 +4,9 @@ exposures:
   - name: api_weekly_usage
     type: application
     maturity: low
+    owner:
+      name: "Fantasy Dashboard"
+      email: "admin@example.com"
     url: http://localhost:8000/
     description: "API will read weekly usage metrics from f_weekly_usage (Stage 4)."
     depends_on:
@@ -12,6 +15,9 @@ exposures:
   - name: api_defense_vs_pos
     type: application
     maturity: low
+    owner:
+      name: "Fantasy Dashboard"
+      email: "admin@example.com"
     url: http://localhost:8000/
     description: "API will read defense-vs-position metrics from f_defense_vs_pos (Stage 4)."
     depends_on:
@@ -20,6 +26,9 @@ exposures:
   - name: projections_weekly
     type: analysis
     maturity: medium
+    owner:
+      name: "Fantasy Dashboard"
+      email: "admin@example.com"
     description: "Weekly projections consume usage and defense metrics."
     depends_on:
       - ref('f_weekly_usage')
@@ -29,6 +38,9 @@ exposures:
   - name: projections_ros
     type: analysis
     maturity: medium
+    owner:
+      name: "Fantasy Dashboard"
+      email: "admin@example.com"
     description: "Rest-of-season projections aggregate weekly projections."
     depends_on:
       - ref('f_calendar_weeks')

@@ -207,17 +207,17 @@ final_projections AS (
     scoring,
     
     -- Fantasy points projection
-    {{ score_points('sw', 'rec_pred', 'rec_yds_pred', 'rec_td_pred', 'rush_yds_pred', 'rush_td_pred', 'pass_yds_pred', 'pass_td_pred', 'int_pred', '0') }} AS proj_pts,
+    {{ score_points('', 'rec_pred', 'rec_yds_pred', 'rec_td_pred', 'rush_yds_pred', 'rush_td_pred', 'pass_yds_pred', 'pass_td_pred', 'int_pred', '0') }} AS proj_pts,
     
     -- Points variance for CI
-    (var_rec * reception * reception) +
-    (var_rec_yds * rec_yd * rec_yd) +
-    (var_rec_td * rec_td * rec_td) +
-    (var_rush_yds * rush_yd * rush_yd) +
-    (var_rush_td * rush_td * rush_td) +
-    (var_pass_yds * pass_yd * pass_yd) +
-    (var_pass_td * pass_td * pass_td) +
-    (var_int * int * int) AS points_variance,
+    (COALESCE(var_rec, 0) * reception * reception) +
+    (COALESCE(var_rec_yds, 0) * rec_yd * rec_yd) +
+    (COALESCE(var_rec_td, 0) * rec_td * rec_td) +
+    (COALESCE(var_rush_yds, 0) * rush_yd * rush_yd) +
+    (COALESCE(var_rush_td, 0) * rush_td * rush_td) +
+    (COALESCE(var_pass_yds, 0) * pass_yd * pass_yd) +
+    (COALESCE(var_pass_td, 0) * pass_td * pass_td) +
+    (COALESCE(var_int, 0) * int * int) AS points_variance,
     
     -- Components JSON for explainability
     jsonb_build_object(

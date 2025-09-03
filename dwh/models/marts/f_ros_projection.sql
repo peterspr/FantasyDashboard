@@ -15,7 +15,7 @@ WITH current_week_calc AS (
     season,
     MAX(week) AS current_week
   FROM {{ ref('f_calendar_weeks') }}
-  WHERE week_start_date <= '{{ var("projections.as_of_date", run_started_at()) }}'::timestamp
+  WHERE week_start_date <= '{{ var("projections.as_of_date", run_started_at) }}'::timestamp
   GROUP BY season
 ),
 

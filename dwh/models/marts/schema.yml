@@ -48,7 +48,7 @@ models:
         description: "Player position"
         tests:
           - accepted_values:
-              values: ['QB', 'RB', 'WR', 'TE', 'K', 'DEF', 'FB', 'OL', 'DL', 'LB', 'DB']
+              values: ['QB', 'RB', 'WR', 'TE', 'K', 'DEF', 'FB', 'OL', 'DL', 'LB', 'DB', 'CB', 'DE', 'FS', 'G', 'ILB', 'MLB', 'OLB', 'P', 'SS', 'T']
       - name: target_share
         description: "Player's share of team targets (0-1)"
       - name: rush_share

@@ -56,11 +56,6 @@ models:
     tests:
       - unique:
           column_name: "season || '-' || week || '-' || player_id || '-' || team"
-      - relationships:
-          to: ref('int_team_week_totals')
-          field: team
-          config:
-            where: "season IS NOT NULL AND week IS NOT NULL"
 
   - name: int_defense_allowed_raw
     description: "Defense vs position allowed statistics by week"

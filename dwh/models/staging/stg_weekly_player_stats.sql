@@ -1,10 +1,10 @@
 {{ config(materialized='view') }}
 
-SELECT
+SELECT DISTINCT ON (season, week, {{ j_get_text('data', 'player_id') }}, {{ j_get_text('data', 'team') }})
   season,
   week,
   {{ j_get_text('data', 'player_id') }} AS player_id,
-  {{ j_get_text('data', 'recent_team') }} AS team,
+  {{ j_get_text('data', 'team') }} AS team,
   {{ j_get_text('data', 'position') }} AS position,
   
   -- Passing stats
@@ -38,3 +38,4 @@ SELECT
 
 FROM {{ source('raw', 'weekly_player_stats') }}
 WHERE dataset = 'weekly_player_stats'
+ORDER BY season, week, {{ j_get_text('data', 'player_id') }}, {{ j_get_text('data', 'team') }}, _ingested_at DESC

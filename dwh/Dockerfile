@@ -10,8 +10,8 @@ WORKDIR /app
 
 # Install dbt
 RUN pip install --no-cache-dir \
-    dbt-core>=1.8.0,<2.0.0 \
-    dbt-postgres>=1.8.0,<2.0.0
+    "dbt-core>=1.8.0,<2.0.0" \
+    "dbt-postgres>=1.8.0,<2.0.0"
 
 # Copy dbt project
 COPY . .

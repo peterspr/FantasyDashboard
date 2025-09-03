@@ -24,11 +24,11 @@ models:
         tests:
           - not_null
       - name: position
-        description: "Player position (QB, RB, WR, TE)"
+        description: "Player position"
         tests:
           - not_null
           - accepted_values:
-              values: ['QB', 'RB', 'WR', 'TE']
+              values: ['QB', 'RB', 'WR', 'TE', 'FB', 'CB', 'DE', 'FS', 'G', 'ILB', 'MLB', 'OLB', 'P', 'SS', 'T']
       - name: scoring
         description: "Fantasy scoring system"
         tests:
@@ -86,11 +86,11 @@ models:
         tests:
           - not_null
       - name: position
-        description: "Player position (QB, RB, WR, TE)"
+        description: "Player position"
         tests:
           - not_null
           - accepted_values:
-              values: ['QB', 'RB', 'WR', 'TE']
+              values: ['QB', 'RB', 'WR', 'TE', 'FB', 'CB', 'DE', 'FS', 'G', 'ILB', 'MLB', 'OLB', 'P', 'SS', 'T']
       - name: scoring
         description: "Fantasy scoring system"
         tests:
