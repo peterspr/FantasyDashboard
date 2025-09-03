@@ -1,5 +1,6 @@
 import type { Metadata } from 'next'
 import './globals.css'
+import { QueryProvider } from '@/lib/query-provider'
 
 export const metadata: Metadata = {
   title: 'Fantasy Insights',
@@ -13,7 +14,9 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <body className="min-h-screen bg-gray-50">{children}</body>
+      <body className="min-h-screen bg-gray-50">
+        <QueryProvider>{children}</QueryProvider>
+      </body>
     </html>
   )
 }

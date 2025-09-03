@@ -1,35 +1,66 @@
 'use client'
 
-import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { Card } from '@/components/Card'
 import { EnvBadge } from '@/components/EnvBadge'
-import { checkHealth } from '@/lib/api'
+import { useHealth, useMeta } from '@/lib/queries'
+import { BarChart3, TrendingUp, Users, Target } from 'lucide-react'
 
 export default function Home() {
-  const [healthStatus, setHealthStatus] = useState<string>('checking...')
+  const { data: health } = useHealth()
+  const { data: meta } = useMeta()
 
-  useEffect(() => {
-    checkHealth()
-      .then((status) => setHealthStatus(status))
-      .catch(() => setHealthStatus('error'))
-  }, [])
+  const features = [
+    {
+      title: 'Weekly Projections',
+      description: 'View player projections for any week with customizable scoring',
+      href: '/projections',
+      icon: Target,
+      color: 'bg-blue-500',
+    },
+    {
+      title: 'Rest of Season',
+      description: 'See full season projections and rankings',
+      href: '/ros',
+      icon: TrendingUp,
+      color: 'bg-green-500',
+    },
+    {
+      title: 'Player Analysis',
+      description: 'Deep dive into player usage trends and statistics',
+      href: '/players/00-0030506', // Example player ID
+      icon: BarChart3,
+      color: 'bg-purple-500',
+    },
+    {
+      title: 'Data Operations',
+      description: 'Monitor data pipeline and ingestion status',
+      href: '/ops',
+      icon: Users,
+      color: 'bg-gray-500',
+    },
+  ]
 
   return (
     <div className="container mx-auto px-4 py-8">
-      <div className="text-center mb-8">
+      <div className="text-center mb-12">
         <h1 className="text-4xl font-bold text-gray-900 mb-4">Fantasy Insights</h1>
-        <p className="text-xl text-gray-600">
+        <p className="text-xl text-gray-600 mb-8">
           Fantasy Football Insights and Projections Platform
         </p>
+        <EnvBadge />
       </div>
 
-      <div className="max-w-4xl mx-auto">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+      <div className="max-w-6xl mx-auto">
+        {/* System Status */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-12">
           <Card>
             <h2 className="text-xl font-semibold mb-2">API Status</h2>
             <p className="text-gray-600 mb-4">
-              Backend API health: <span className="font-mono">{healthStatus}</span>
+              Backend API health: 
+              <span className="font-mono ml-2 px-2 py-1 bg-gray-100 rounded">
+                {health?.status || 'checking...'}
+              </span>
             </p>
             <a
               href={`${process.env.NEXT_PUBLIC_API_URL}/health`}
@@ -42,24 +73,35 @@ export default function Home() {
           </Card>
 
           <Card>
-            <h2 className="text-xl font-semibold mb-2">Environment</h2>
-            <EnvBadge />
+            <h2 className="text-xl font-semibold mb-2">Service Info</h2>
+            <div className="space-y-2 text-sm text-gray-600">
+              <div>Service: {meta?.service || 'loading...'}</div>
+              <div>Version: {meta?.version || 'loading...'}</div>
+              <div>Environment: {meta?.env || 'loading...'}</div>
+            </div>
           </Card>
         </div>
 
-        <div className="text-center space-x-4">
-          <Link
-            href="/about"
-            className="inline-block bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors"
-          >
-            Learn More
-          </Link>
-          <Link
-            href="/ops"
-            className="inline-block bg-gray-600 text-white px-6 py-3 rounded-lg hover:bg-gray-700 transition-colors"
-          >
-            Data Ops
-          </Link>
+        {/* Feature Grid */}
+        <div className="mb-12">
+          <h2 className="text-2xl font-bold text-gray-900 mb-8 text-center">
+            Explore Features
+          </h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            {features.map((feature) => (
+              <Link key={feature.href} href={feature.href}>
+                <Card className="h-full hover:shadow-lg transition-shadow cursor-pointer">
+                  <div className="flex flex-col items-center text-center">
+                    <div className={`p-3 rounded-full ${feature.color} text-white mb-4`}>
+                      <feature.icon className="w-6 h-6" />
+                    </div>
+                    <h3 className="text-lg font-semibold mb-2">{feature.title}</h3>
+                    <p className="text-gray-600 text-sm">{feature.description}</p>
+                  </div>
+                </Card>
+              </Link>
+            ))}
+          </div>
         </div>
 
         <div className="mt-12">
