@@ -17,7 +17,7 @@ class PlayersRepository:
             param_idx = 1
             
             if search:
-                where_clauses.append(f"LOWER(display_name) LIKE ${param_idx}")
+                where_clauses.append(f"LOWER(CASE WHEN display_name != '' THEN display_name ELSE concat(first_name, ' ', last_name) END) LIKE ${param_idx}")
                 params.append(f"%{search.lower()}%")
                 param_idx += 1
                 
@@ -26,23 +26,28 @@ class PlayersRepository:
                 params.append(position.upper())
                 param_idx += 1
                 
+            # Note: team filter not supported as stg_players doesn't have team column
+            # Team info would need to come from roster data
             if team:
-                where_clauses.append(f"team = ${param_idx}")
-                params.append(team.upper())
-                param_idx += 1
+                # Skip team filtering for now
+                pass
             
             where_sql = "WHERE " + " AND ".join(where_clauses) if where_clauses else ""
             
             # Count total
-            count_query = f"SELECT COUNT(*) FROM staging.stg_players {where_sql}"
+            count_query = f"SELECT COUNT(*) FROM (SELECT DISTINCT ON (player_id) player_id, display_name, first_name, last_name, position FROM dwh_staging.stg_players) p {where_sql}"
             total = await conn.fetchval(count_query, *params)
             
             # Get results
             query = f"""
-            SELECT player_id, display_name as name, team, position
-            FROM staging.stg_players
+            SELECT 
+                player_id, 
+                CASE WHEN display_name != '' THEN display_name ELSE concat(first_name, ' ', last_name) END as name, 
+                NULL as team, 
+                position
+            FROM (SELECT DISTINCT ON (player_id) player_id, display_name, first_name, last_name, position FROM dwh_staging.stg_players) p
             {where_sql}
-            ORDER BY display_name ASC
+            ORDER BY CASE WHEN display_name != '' THEN display_name ELSE concat(first_name, ' ', last_name) END ASC
             LIMIT ${param_idx} OFFSET ${param_idx + 1}
             """
             params.extend([limit, offset])

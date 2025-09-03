@@ -1,5 +1,5 @@
 from typing import Optional
-from fastapi import APIRouter, Query, Response
+from fastapi import APIRouter, Query, Response, Depends
 from app.core.rate_limit import RateLimiter
 from app.api.models import PlayersList
 from app.repositories.players_repo import PlayersRepository
@@ -17,7 +17,7 @@ async def list_players(
     team: Optional[str] = Query(None, description="Filter by team"),
     limit: int = Query(settings.DEFAULT_PAGE_SIZE, le=settings.MAX_PAGE_SIZE),
     offset: int = Query(0, ge=0),
-    _: int = RateLimiter(times=60, seconds=60)
+    _: bool = Depends(RateLimiter(times=60, seconds=60))
 ):
     """List players with optional filtering"""
     params = {

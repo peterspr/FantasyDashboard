@@ -1,5 +1,5 @@
 from typing import Optional
-from fastapi import APIRouter, Query, Response, HTTPException
+from fastapi import APIRouter, Query, Response, HTTPException, Depends
 from app.core.rate_limit import RateLimiter
 from app.api.models import ROSList
 from app.core.projections_provider import get_provider
@@ -20,7 +20,7 @@ async def get_ros_projections(
     sort_desc: bool = Query(True, description="Sort descending"),
     limit: int = Query(settings.DEFAULT_PAGE_SIZE, le=settings.MAX_PAGE_SIZE),
     offset: int = Query(0, ge=0),
-    _: int = RateLimiter(times=60, seconds=60)
+    _: bool = Depends(RateLimiter(times=60, seconds=60))
 ):
     """Get rest of season projections for all players"""
     if season < 2020 or season > 2030:
@@ -51,7 +51,7 @@ async def get_ros_projections(
         response.headers["X-Total-Count"] = str(cached["total"])
         return cached
     
-    provider = get_provider()
+    provider = get_provider(settings.PROJECTION_PROVIDER)
     result = await provider.ros(
         season=season,
         scoring=scoring,

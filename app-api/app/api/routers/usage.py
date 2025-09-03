@@ -1,5 +1,5 @@
 from typing import Optional, List
-from fastapi import APIRouter, Query, Response, HTTPException
+from fastapi import APIRouter, Query, Response, HTTPException, Depends
 from app.core.rate_limit import RateLimiter
 from pydantic import BaseModel
 from app.api.models import UsageWeeklyItem
@@ -22,7 +22,7 @@ async def get_player_usage(
     player_id: str,
     response: Response,
     weeks: Optional[str] = Query(None, description="Comma-separated weeks (e.g., '1,2,3' or '1-4')"),
-    _: int = RateLimiter(times=60, seconds=60)
+    _: bool = Depends(RateLimiter(times=60, seconds=60))
 ):
     """Get usage data for a specific player across weeks"""
     if season < 2020 or season > 2030:

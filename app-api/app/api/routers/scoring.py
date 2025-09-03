@@ -1,5 +1,5 @@
 from typing import Dict
-from fastapi import APIRouter, Response
+from fastapi import APIRouter, Response, Depends
 from app.core.rate_limit import RateLimiter
 from app.api.models import ScoringPreviewRequest, ProjectionList
 from app.repositories.scoring_repo import ScoringRepository
@@ -13,7 +13,7 @@ scoring_repo = ScoringRepository()
 async def preview_custom_scoring(
     request: ScoringPreviewRequest,
     response: Response,
-    _: int = RateLimiter(times=30, seconds=60)
+    _: bool = Depends(RateLimiter(times=30, seconds=60))
 ):
     """Preview projections with custom scoring"""
     params = {
@@ -55,7 +55,7 @@ async def preview_custom_scoring(
 @router.get("/presets")
 async def get_scoring_presets(
     response: Response,
-    _: int = RateLimiter(times=60, seconds=60)
+    _: bool = Depends(RateLimiter(times=60, seconds=60))
 ):
     """Get common scoring presets"""
     presets = {

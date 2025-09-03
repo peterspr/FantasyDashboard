@@ -31,10 +31,10 @@ class UsageRepository:
                         route_pct,
                         target_share,
                         rush_share,
-                        routes,
+                        routes_run as routes,
                         targets,
                         rush_att
-                    FROM mart.int_player_usage_weekly
+                    FROM dwh_intermediate.int_player_week_usage
                     WHERE season = $1 
                         AND player_id = $2
                         {week_filter}
@@ -44,12 +44,13 @@ class UsageRepository:
                         season,
                         week,
                         player_id,
-                        proj,
+                        proj_pts as proj,
                         low,
                         high
-                    FROM mart.int_weekly_projections_baseline
+                    FROM dwh_marts.f_weekly_projection
                     WHERE season = $1 
                         AND player_id = $2
+                        AND scoring = 'ppr'
                         {week_filter}
                 )
                 SELECT 

@@ -13,7 +13,8 @@ class ProjectionProvider(Protocol):
         position: str | None = None,
         team: str | None = None, 
         search: str | None = None, 
-        sort: str | None = None,
+        sort_by: str | None = None,
+        sort_desc: bool = True,
         limit: int = 50, 
         offset: int = 0
     ) -> Dict:
@@ -27,7 +28,8 @@ class ProjectionProvider(Protocol):
         position: str | None = None,
         team: str | None = None, 
         search: str | None = None, 
-        sort: str | None = None,
+        sort_by: str | None = None,
+        sort_desc: bool = True,
         limit: int = 50, 
         offset: int = 0
     ) -> Dict:
@@ -46,10 +48,19 @@ class BaselineProvider:
         position: str | None = None,
         team: str | None = None, 
         search: str | None = None, 
-        sort: str | None = None,
+        sort_by: str | None = None,
+        sort_desc: bool = True,
         limit: int = 50, 
         offset: int = 0
     ) -> Dict:
+        # Convert sort_by and sort_desc to single sort parameter
+        sort = sort_by if sort_by else "proj"
+        if not sort_desc and sort != "name":
+            # For non-name sorts, we need to handle ascending differently
+            # The repository doesn't support ascending for numeric sorts yet
+            # For now, keep the default DESC behavior
+            pass
+            
         return await self.repo.list_weekly_projections(
             season=season,
             week=week,
@@ -70,10 +81,19 @@ class BaselineProvider:
         position: str | None = None,
         team: str | None = None, 
         search: str | None = None, 
-        sort: str | None = None,
+        sort_by: str | None = None,
+        sort_desc: bool = True,
         limit: int = 50, 
         offset: int = 0
     ) -> Dict:
+        # Convert sort_by and sort_desc to single sort parameter  
+        sort = sort_by if sort_by else "proj_total"
+        if not sort_desc and sort != "name":
+            # For non-name sorts, we need to handle ascending differently
+            # The repository doesn't support ascending for numeric sorts yet
+            # For now, keep the default DESC behavior
+            pass
+            
         return await self.repo.list_ros_projections(
             season=season,
             scoring=scoring,
@@ -95,7 +115,8 @@ class MLProvider:
         position: str | None = None,
         team: str | None = None, 
         search: str | None = None, 
-        sort: str | None = None,
+        sort_by: str | None = None,
+        sort_desc: bool = True,
         limit: int = 50, 
         offset: int = 0
     ) -> Dict:
@@ -109,7 +130,8 @@ class MLProvider:
         position: str | None = None,
         team: str | None = None, 
         search: str | None = None, 
-        sort: str | None = None,
+        sort_by: str | None = None,
+        sort_desc: bool = True,
         limit: int = 50, 
         offset: int = 0
     ) -> Dict:

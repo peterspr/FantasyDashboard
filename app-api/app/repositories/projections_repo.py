@@ -1,4 +1,5 @@
 from typing import Dict, List, Optional
+import json
 import asyncpg
 from app.db.async_session import get_raw_connection
 
@@ -35,7 +36,7 @@ class ProjectionsRepository:
                 param_idx += 1
                 
             if search:
-                where_clauses.append(f"LOWER(p.display_name) LIKE ${param_idx}")
+                where_clauses.append(f"LOWER(CASE WHEN p.display_name != '' THEN p.display_name ELSE concat(p.first_name, ' ', p.last_name) END) LIKE ${param_idx}")
                 params.append(f"%{search.lower()}%")
                 param_idx += 1
             
@@ -54,18 +55,28 @@ class ProjectionsRepository:
             
             # Count total
             count_query = f"""
+            WITH dedupe_players AS (
+                SELECT DISTINCT ON (player_id) 
+                    player_id, display_name, first_name, last_name
+                FROM dwh_staging.stg_players
+            )
             SELECT COUNT(*)
-            FROM marts.f_weekly_projection fp
-            LEFT JOIN staging.stg_players p ON fp.player_id = p.player_id
+            FROM dwh_marts.f_weekly_projection fp
+            LEFT JOIN dedupe_players p ON fp.player_id = p.player_id
             {where_sql}
             """
             total = await conn.fetchval(count_query, *params)
             
             # Get results
             query = f"""
+            WITH dedupe_players AS (
+                SELECT DISTINCT ON (player_id) 
+                    player_id, display_name, first_name, last_name
+                FROM dwh_staging.stg_players
+            )
             SELECT 
                 fp.player_id,
-                COALESCE(p.display_name, fp.player_id) as name,
+                COALESCE(CASE WHEN p.display_name != '' THEN p.display_name ELSE concat(p.first_name, ' ', p.last_name) END, fp.player_id) as name,
                 fp.team,
                 fp.position,
                 fp.scoring,
@@ -75,8 +86,8 @@ class ProjectionsRepository:
                 fp.components_json as components,
                 fp.season,
                 fp.week
-            FROM marts.f_weekly_projection fp
-            LEFT JOIN staging.stg_players p ON fp.player_id = p.player_id
+            FROM dwh_marts.f_weekly_projection fp
+            LEFT JOIN dedupe_players p ON fp.player_id = p.player_id
             {where_sql}
             {sort_sql}
             LIMIT ${param_idx} OFFSET ${param_idx + 1}
@@ -85,11 +96,22 @@ class ProjectionsRepository:
             
             rows = await conn.fetch(query, *params)
             
+            # Parse JSON components
+            items = []
+            for row in rows:
+                item = dict(row)
+                if item.get('components'):
+                    try:
+                        item['components'] = json.loads(item['components'])
+                    except (json.JSONDecodeError, TypeError):
+                        item['components'] = {}
+                items.append(item)
+            
             return {
                 "season": season,
                 "week": week,
                 "scoring": scoring,
-                "items": [dict(row) for row in rows],
+                "items": items,
                 "total": total,
                 "limit": limit,
                 "offset": offset
@@ -125,7 +147,7 @@ class ProjectionsRepository:
                 param_idx += 1
                 
             if search:
-                where_clauses.append(f"LOWER(p.display_name) LIKE ${param_idx}")
+                where_clauses.append(f"LOWER(CASE WHEN p.display_name != '' THEN p.display_name ELSE concat(p.first_name, ' ', p.last_name) END) LIKE ${param_idx}")
                 params.append(f"%{search.lower()}%")
                 param_idx += 1
             
@@ -144,18 +166,28 @@ class ProjectionsRepository:
             
             # Count total
             count_query = f"""
+            WITH dedupe_players AS (
+                SELECT DISTINCT ON (player_id) 
+                    player_id, display_name, first_name, last_name
+                FROM dwh_staging.stg_players
+            )
             SELECT COUNT(*)
-            FROM marts.f_ros_projection fp
-            LEFT JOIN staging.stg_players p ON fp.player_id = p.player_id
+            FROM dwh_marts.f_ros_projection fp
+            LEFT JOIN dedupe_players p ON fp.player_id = p.player_id
             {where_sql}
             """
             total = await conn.fetchval(count_query, *params)
             
             # Get results
             query = f"""
+            WITH dedupe_players AS (
+                SELECT DISTINCT ON (player_id) 
+                    player_id, display_name, first_name, last_name
+                FROM dwh_staging.stg_players
+            )
             SELECT 
                 fp.player_id,
-                COALESCE(p.display_name, fp.player_id) as name,
+                COALESCE(CASE WHEN p.display_name != '' THEN p.display_name ELSE concat(p.first_name, ' ', p.last_name) END, fp.player_id) as name,
                 fp.team,
                 fp.position,
                 fp.scoring,
@@ -163,8 +195,8 @@ class ProjectionsRepository:
                 fp.low,
                 fp.high,
                 fp.per_week_json
-            FROM marts.f_ros_projection fp
-            LEFT JOIN staging.stg_players p ON fp.player_id = p.player_id
+            FROM dwh_marts.f_ros_projection fp
+            LEFT JOIN dedupe_players p ON fp.player_id = p.player_id
             {where_sql}
             {sort_sql}
             LIMIT ${param_idx} OFFSET ${param_idx + 1}
@@ -173,10 +205,21 @@ class ProjectionsRepository:
             
             rows = await conn.fetch(query, *params)
             
+            # Parse JSON per_week data
+            items = []
+            for row in rows:
+                item = dict(row)
+                if item.get('per_week_json'):
+                    try:
+                        item['per_week_json'] = json.loads(item['per_week_json'])
+                    except (json.JSONDecodeError, TypeError):
+                        item['per_week_json'] = []
+                items.append(item)
+            
             return {
                 "season": season,
                 "scoring": scoring,
-                "items": [dict(row) for row in rows],
+                "items": items,
                 "total": total,
                 "limit": limit,
                 "offset": offset
