@@ -22,6 +22,7 @@ jobs:
           --health-retries 5
         ports:
           - 5432:5432
+      
 
     steps:
       - uses: actions/checkout@v4
@@ -54,6 +55,9 @@ jobs:
         run: pytest
         env:
           DATABASE_URL: postgresql+psycopg://postgres:postgres@localhost:5432/fantasy
+          ENV_NAME: test
+          ENV_VERSION: ci
+          ALLOWED_ORIGINS: '["*"]'
 
   web:
     runs-on: ubuntu-latest
@@ -83,6 +87,8 @@ jobs:
       - name: Build
         working-directory: ./app-web
         run: pnpm build
+        env:
+          NEXT_PUBLIC_API_URL: http://localhost:8000
 
   flows:
     runs-on: ubuntu-latest
@@ -143,9 +149,26 @@ jobs:
           pip install yamllint
           yamllint models/
           
+      - name: Install dbt packages
+        working-directory: ./dwh
+        run: dbt deps
+        env:
+          DBT_PROFILES_DIR: .
+          
       - name: Run dbt debug
         working-directory: ./dwh
         run: dbt debug
+        env:
+          POSTGRES_HOST: localhost
+          POSTGRES_PORT: 5432
+          POSTGRES_DB: fantasy
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          DBT_PROFILES_DIR: .
+          
+      - name: Run dbt build (modified models)
+        working-directory: ./dwh
+        run: dbt build --select state:modified+
         env:
           POSTGRES_HOST: localhost
           POSTGRES_PORT: 5432
