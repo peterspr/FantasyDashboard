@@ -58,7 +58,7 @@ export function DataTable<TData>({
   const virtualizer = useVirtualizer({
     count: rows.length,
     getScrollElement: () => parentRef.current,
-    estimateSize: () => 50,
+    estimateSize: () => 80,
     overscan: 5,
   });
 
@@ -106,7 +106,7 @@ export function DataTable<TData>({
           className="overflow-auto"
           style={{ height: `${maxHeight}px` }}
         >
-          <table className="w-full">
+          <table className="w-full table-fixed">
             <thead className={cn(stickyHeader && "sticky top-0 z-10 bg-white")}>
               {table.getHeaderGroups().map((headerGroup) => (
                 <tr key={headerGroup.id} className="border-b border-gray-200">
@@ -138,10 +138,7 @@ export function DataTable<TData>({
                 </tr>
               ))}
             </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
-              <tr style={{ height: `${virtualizer.getTotalSize()}px` }}>
-                <td />
-              </tr>
+            <tbody className="bg-white divide-y divide-gray-200" style={{ position: 'relative', height: `${virtualizer.getTotalSize()}px` }}>
               {virtualizer.getVirtualItems().map((virtualItem) => {
                 const row = rows[virtualItem.index];
                 return (
@@ -154,13 +151,16 @@ export function DataTable<TData>({
                       width: '100%',
                       height: `${virtualItem.size}px`,
                       transform: `translateY(${virtualItem.start}px)`,
+                      display: 'table',
+                      tableLayout: 'fixed',
                     }}
                     className="hover:bg-gray-50"
                   >
                     {row.getVisibleCells().map((cell) => (
                       <td
                         key={cell.id}
-                        className="px-4 py-2 text-sm text-gray-900"
+                        className="px-4 py-4 text-sm text-gray-900 align-middle"
+                        style={{ display: 'table-cell' }}
                       >
                         {flexRender(cell.column.columnDef.cell, cell.getContext())}
                       </td>
