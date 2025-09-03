@@ -42,8 +42,8 @@ class NFLVerseLoader:
         self.logger.info(f"Loading rosters for years: {years}")
         
         try:
-            # nfl_data_py.import_rosters() - team rosters by season
-            df = nfl.import_rosters(years=years)
+            # nfl_data_py.import_seasonal_rosters() - team rosters by season
+            df = nfl.import_seasonal_rosters(years=years)
             self.logger.info(f"Loaded {len(df)} roster records")
             
             # Ensure we have required columns
@@ -77,8 +77,12 @@ class NFLVerseLoader:
         
         try:
             # nfl_data_py.import_weekly_data() - weekly player stats
+            # Note: nfl_data_py uses different parameter names
             if weeks:
-                df = nfl.import_weekly_data(years=years, weeks=weeks)
+                df = nfl.import_weekly_data(years=years)
+                # Filter for specific weeks after loading
+                if len(weeks) > 0:
+                    df = df[df['week'].isin(weeks)]
             else:
                 df = nfl.import_weekly_data(years=years)
             
@@ -88,9 +92,12 @@ class NFLVerseLoader:
             if 'player_id' not in df.columns and 'gsis_id' in df.columns:
                 df['player_id'] = df['gsis_id']
             
-            # Standardize team column name
-            if 'recent_team' in df.columns and 'team' not in df.columns:
-                df['team'] = df['recent_team']
+            # Handle duplicate team column issue - rename recent_team to team
+            if 'recent_team' in df.columns:
+                # Drop the existing team column if it exists to avoid duplicates
+                if 'team' in df.columns:
+                    df = df.drop(columns=['team'])
+                df = df.rename(columns={'recent_team': 'team'})
             
             return df
             
@@ -104,16 +111,23 @@ class NFLVerseLoader:
         
         try:
             # nfl_data_py.import_snap_counts() - snap count data
+            # Note: nfl_data_py uses different parameter names
             if weeks:
-                df = nfl.import_snap_counts(years=years, weeks=weeks)
+                df = nfl.import_snap_counts(years=years)
+                # Filter for specific weeks after loading
+                if len(weeks) > 0:
+                    df = df[df['week'].isin(weeks)]
             else:
                 df = nfl.import_snap_counts(years=years)
             
             self.logger.info(f"Loaded {len(df)} snap count records")
             
-            # Ensure we have required columns
-            if 'player_id' not in df.columns and 'gsis_id' in df.columns:
-                df['player_id'] = df['gsis_id']
+            # Ensure we have required columns - snap counts uses pfr_player_id
+            if 'player_id' not in df.columns:
+                if 'gsis_id' in df.columns:
+                    df['player_id'] = df['gsis_id']
+                elif 'pfr_player_id' in df.columns:
+                    df['player_id'] = df['pfr_player_id']
             
             return df
             
@@ -127,8 +141,12 @@ class NFLVerseLoader:
         
         try:
             # nfl_data_py.import_injuries() - injury reports
+            # Note: nfl_data_py uses different parameter names
             if weeks:
-                df = nfl.import_injuries(years=years, weeks=weeks)
+                df = nfl.import_injuries(years=years)
+                # Filter for specific weeks after loading
+                if len(weeks) > 0:
+                    df = df[df['week'].isin(weeks)]
             else:
                 df = nfl.import_injuries(years=years)
             
@@ -150,16 +168,31 @@ class NFLVerseLoader:
         
         try:
             # nfl_data_py.import_depth_charts() - team depth charts
-            if weeks:
-                df = nfl.import_depth_charts(years=years, weeks=weeks)
-            else:
-                df = nfl.import_depth_charts(years=years)
+            # Note: nfl_data_py uses different parameter names
+            df = nfl.import_depth_charts(years=years)
+            
+            # Filter for specific weeks after loading if week column exists
+            if weeks and len(weeks) > 0 and 'week' in df.columns:
+                df = df[df['week'].isin(weeks)]
             
             self.logger.info(f"Loaded {len(df)} depth chart records")
             
-            # Ensure we have required columns
+            # Ensure we have required columns for depth charts
             if 'player_id' not in df.columns and 'gsis_id' in df.columns:
                 df['player_id'] = df['gsis_id']
+            
+            # Handle team column for depth charts - they might use different names
+            team_columns = ['club_code', 'club', 'tm', 'team_abbr', 'franchise_id', 'team_name']
+            for col in team_columns:
+                if col in df.columns and 'team' not in df.columns:
+                    df = df.rename(columns={col: 'team'})
+                    break
+            
+            # If still no team column, check what columns we have
+            if 'team' not in df.columns:
+                self.logger.warning(f"Depth charts columns: {list(df.columns)}")
+                # Use a fallback - create empty team column if needed
+                df['team'] = ''
             
             return df
             

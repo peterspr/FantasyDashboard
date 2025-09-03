@@ -1,4 +1,7 @@
 import hashlib
+import json
+import numpy as np
+import pandas as pd
 from datetime import datetime
 from typing import Dict, List, Any, Optional
 
@@ -8,6 +11,30 @@ from sqlalchemy.orm import sessionmaker
 from prefect import get_run_logger
 
 from .settings import get_settings
+
+
+def safe_json_serialize(obj):
+    """Safely serialize objects to JSON, handling NaN, infinite values, and pandas types."""
+    if isinstance(obj, dict):
+        return {k: safe_json_serialize(v) for k, v in obj.items()}
+    elif isinstance(obj, list):
+        return [safe_json_serialize(v) for v in obj]
+    elif isinstance(obj, (np.floating, float)) and (np.isnan(obj) or np.isinf(obj)):
+        return None
+    elif isinstance(obj, np.integer):
+        return int(obj)
+    elif isinstance(obj, np.floating):
+        return float(obj)
+    elif isinstance(obj, np.ndarray):
+        return obj.tolist()
+    elif isinstance(obj, (pd.Timestamp, pd.Timedelta)):
+        return str(obj)
+    elif isinstance(obj, pd.NaT.__class__):
+        return None
+    elif hasattr(obj, 'isoformat'):  # datetime objects
+        return obj.isoformat()
+    else:
+        return obj
 
 
 class PostgresClient:
@@ -97,24 +124,19 @@ class PostgresClient:
             """), {"dataset": dataset}).scalar()
             
             if not result:
-                # Create table
+                # Create table with simple primary key
                 conn.execute(text(f"""
                     CREATE TABLE {table_name} (
                         dataset text NOT NULL,
-                        season integer,
-                        week integer,
-                        player_id text,
-                        team text,
-                        game_id text,
+                        season integer DEFAULT -1,
+                        week integer DEFAULT -1, 
+                        player_id text DEFAULT '',
+                        team text DEFAULT '',
+                        game_id text DEFAULT '',
                         data jsonb NOT NULL,
                         _ingested_at timestamptz NOT NULL DEFAULT now(),
                         _hash text NOT NULL,
-                        PRIMARY KEY (dataset, 
-                                   COALESCE(season::text, ''),
-                                   COALESCE(week::text, ''),
-                                   COALESCE(player_id, ''),
-                                   COALESCE(team, ''),
-                                   COALESCE(game_id, ''))
+                        PRIMARY KEY (dataset, season, week, player_id, team, game_id)
                     )
                 """))
                 
@@ -132,26 +154,52 @@ class PostgresClient:
         
         self.ensure_raw_table(dataset)
         
+        # For depth charts, remove exact duplicates first
+        if dataset == 'depth_charts':
+            original_count = len(records)
+            # Create a set to track unique record signatures
+            seen_records = set()
+            deduplicated_records = []
+            for record in records:
+                # Create a signature from all record contents
+                record_sig = str(sorted(record.items()))
+                if record_sig not in seen_records:
+                    seen_records.add(record_sig)
+                    deduplicated_records.append(record)
+            records = deduplicated_records
+            self.logger.info(f"Deduplicated depth charts from {original_count} to {len(deduplicated_records)} unique records")
+        
         # Prepare records for upsert
         upsert_records = []
         for record in records:
-            # Extract standard columns
-            season = record.get('season')
-            week = record.get('week')
-            player_id = record.get('player_id')
-            team = record.get('team')
-            game_id = record.get('game_id')
+            # Extract standard columns with defaults for NULL values
+            season = record.get('season') or -1
+            week = record.get('week') or -1
+            player_id = record.get('player_id') or ''
+            team = record.get('team') or ''
+            game_id = record.get('game_id') or ''
             
             # Compute hash from primary key values and data
             pk_values = [
-                str(season or ''),
-                str(week or ''),
-                str(player_id or ''),
-                str(team or ''),
-                str(game_id or '')
+                str(dataset),
+                str(season),
+                str(week),
+                str(player_id),
+                str(team),
+                str(game_id)
             ]
             hash_input = '|'.join(pk_values) + '|' + str(sorted(record.items()))
             record_hash = hashlib.md5(hash_input.encode()).hexdigest()
+            
+            # For depth charts, create completely unique IDs since they have multiple records per player
+            if dataset == 'depth_charts':
+                # Create a unique identifier from all record contents
+                unique_id = hashlib.md5(str(sorted(record.items())).encode()).hexdigest()[:16]
+                game_id = unique_id
+            else:
+                # Add row hash to make each record unique (for cases with multiple entries per player)
+                row_id = hashlib.md5(str(sorted(record.items())).encode()).hexdigest()[:8]
+                game_id = game_id or row_id  # Use row_id if game_id is empty to ensure uniqueness
             
             upsert_records.append({
                 'dataset': dataset,
@@ -164,15 +212,27 @@ class PostgresClient:
                 '_hash': record_hash
             })
         
-        # Perform batch upsert
+        # Break large batches into smaller chunks to avoid SQL parameter limits
+        batch_size = 500  # Conservative batch size for SQL parameters
+        total_upserted = 0
+        
+        for i in range(0, len(upsert_records), batch_size):
+            batch = upsert_records[i:i + batch_size]
+            total_upserted += self._upsert_batch(dataset, batch)
+        
+        self.logger.info(f"Upserted {total_upserted} records into raw.{dataset}")
+        return total_upserted
+    
+    def _upsert_batch(self, dataset: str, batch_records: List[Dict[str, Any]]) -> int:
+        """Upsert a single batch of records."""
         table_name = f"raw.{dataset}"
         
         with self.engine.connect() as conn:
             # Use VALUES clause for batch upsert
             placeholders = []
-            values = []
+            values = {}
             
-            for i, record in enumerate(upsert_records):
+            for i, record in enumerate(batch_records):
                 placeholders.append(f"(:dataset_{i}, :season_{i}, :week_{i}, :player_id_{i}, :team_{i}, :game_id_{i}, :data_{i}, :hash_{i})")
                 values.update({
                     f'dataset_{i}': record['dataset'],
@@ -181,19 +241,14 @@ class PostgresClient:
                     f'player_id_{i}': record['player_id'],
                     f'team_{i}': record['team'],
                     f'game_id_{i}': record['game_id'],
-                    f'data_{i}': record['data'],
+                    f'data_{i}': json.dumps(safe_json_serialize(record['data'])) if isinstance(record['data'], dict) else record['data'],
                     f'hash_{i}': record['_hash']
                 })
             
             upsert_sql = f"""
                 INSERT INTO {table_name} (dataset, season, week, player_id, team, game_id, data, _hash)
                 VALUES {', '.join(placeholders)}
-                ON CONFLICT (dataset, 
-                           COALESCE(season::text, ''),
-                           COALESCE(week::text, ''),
-                           COALESCE(player_id, ''),
-                           COALESCE(team, ''),
-                           COALESCE(game_id, ''))
+                ON CONFLICT (dataset, season, week, player_id, team, game_id)
                 DO UPDATE SET 
                     data = EXCLUDED.data,
                     _ingested_at = now(),
@@ -204,8 +259,7 @@ class PostgresClient:
             conn.execute(text(upsert_sql), values)
             conn.commit()
         
-        self.logger.info(f"Upserted {len(records)} records into {table_name}")
-        return len(records)
+        return len(batch_records)
     
     def record_file_registry(self, dataset: str, s3_path: str, snapshot_at: datetime,
                            season: Optional[int], week: Optional[int], row_count: int,
@@ -214,8 +268,8 @@ class PostgresClient:
         with self.Session() as session:
             result = session.execute(text("""
                 INSERT INTO ops.raw_file_registry 
-                (dataset, s3_path, snapshot_at, season, week, row_count, hash, status, message)
-                VALUES (:dataset, :s3_path, :snapshot_at, :season, :week, :row_count, :hash, :status, :message)
+                (dataset, s3_path, snapshot_at, season, week, row_count, hash, ingested_at, status, message)
+                VALUES (:dataset, :s3_path, :snapshot_at, :season, :week, :row_count, :hash, now(), :status, :message)
                 RETURNING id
             """), {
                 'dataset': dataset,
@@ -239,8 +293,8 @@ class PostgresClient:
         with self.Session() as session:
             session.execute(text("""
                 INSERT INTO ops.raw_ingest_manifest 
-                (dataset, partition, applied_file_id, row_count, hash)
-                VALUES (:dataset, :partition, :applied_file_id, :row_count, :hash)
+                (dataset, partition, applied_file_id, row_count, hash, applied_at)
+                VALUES (:dataset, :partition, :applied_file_id, :row_count, :hash, now())
                 ON CONFLICT (dataset, partition)
                 DO UPDATE SET 
                     applied_file_id = EXCLUDED.applied_file_id,
@@ -249,7 +303,7 @@ class PostgresClient:
                     applied_at = now()
             """), {
                 'dataset': dataset,
-                'partition': partition,
+                'partition': json.dumps(partition),
                 'applied_file_id': applied_file_id,
                 'row_count': row_count,
                 'hash': file_hash

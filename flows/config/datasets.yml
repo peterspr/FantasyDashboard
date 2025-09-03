@@ -84,7 +84,7 @@ datasets:
     partitioning:
       type: weekly
       keys: [season, week]
-    pk: [season, week, team, player_id, position]
-    required_fields: [season, week, team, player_id, position]
+    pk: [dataset, season, week, team, player_id]
+    required_fields: [team, player_id]
     id_columns: [player_id, gsis_id, pfr_id, espn_id]
     schema_version: "v1"

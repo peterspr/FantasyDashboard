@@ -116,4 +116,12 @@ def daily_refresh(season: Optional[int] = None, week: Optional[int] = None) -> D
 
 
 if __name__ == "__main__":
-    daily_refresh()
+    import argparse
+    
+    parser = argparse.ArgumentParser(description="Run daily NFL data refresh")
+    parser.add_argument("--season", type=int, help="NFL season year")
+    parser.add_argument("--week", type=int, help="NFL week number")
+    
+    args = parser.parse_args()
+    
+    daily_refresh(season=args.season, week=args.week)

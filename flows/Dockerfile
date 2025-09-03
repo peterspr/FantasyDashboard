@@ -12,6 +12,9 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Copy source code
 COPY . .
 
+# Install local package in editable mode
+RUN pip install -e .
+
 # Create non-root user
 RUN useradd -m -u 1000 flowuser && chown -R flowuser:flowuser /app
 USER flowuser
