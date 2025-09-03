@@ -1,7 +1,7 @@
 from functools import lru_cache
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Union
 
-from pydantic import Field
+from pydantic import Field, field_validator
 from pydantic_settings import BaseSettings
 
 
@@ -29,19 +29,20 @@ class Settings(BaseSettings):
     minio_bucket: str = Field(default="bronze", alias="MINIO_BUCKET")
     
     # CORS
-    allowed_origins: List[str] = Field(
+    allowed_origins: Union[str, List[str]] = Field(
         default=["http://localhost:3000"], alias="ALLOWED_ORIGINS"
     )
+    
+    @field_validator('allowed_origins')
+    @classmethod
+    def parse_allowed_origins(cls, v) -> List[str]:
+        if isinstance(v, str):
+            return [origin.strip() for origin in v.split(',')]
+        return v
     
     class Config:
         env_file = ".env"
         case_sensitive = False
-        
-        @classmethod
-        def parse_env_var(cls, field_name: str, raw_val: str) -> Any:
-            if field_name == "allowed_origins":
-                return [x.strip() for x in raw_val.split(",")]
-            return cls.json_loads(raw_val)
 
 
 @lru_cache()
