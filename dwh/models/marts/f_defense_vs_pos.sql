@@ -56,10 +56,12 @@ SELECT
   dwr.allowed_yards,
   dwr.allowed_tds,
   
-  -- Normalization to league average
+  -- Stabilized normalization to league average with caps and minimum sample requirements
   CASE 
-    WHEN la.league_avg_rolling_4w > 0 
-    THEN dwr.rolling_allowed_ppr_4w / la.league_avg_rolling_4w
+    WHEN la.league_avg_rolling_4w > 0 AND dwr.sample_players >= 8
+    THEN GREATEST(0.8, LEAST(1.2, dwr.rolling_allowed_ppr_4w / la.league_avg_rolling_4w))
+    WHEN la.league_avg_rolling_4w > 0 AND dwr.sample_players >= 4
+    THEN GREATEST(0.9, LEAST(1.1, dwr.rolling_allowed_ppr_4w / la.league_avg_rolling_4w))
     ELSE 1.0
   END AS schedule_adj_index,
   
