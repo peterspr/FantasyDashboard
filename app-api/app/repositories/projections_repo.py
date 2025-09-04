@@ -36,8 +36,13 @@ class ProjectionsRepository:
                 param_idx += 1
                 
             if search:
-                where_clauses.append(f"LOWER(CASE WHEN p.display_name != '' THEN p.display_name ELSE concat(p.first_name, ' ', p.last_name) END) LIKE ${param_idx}")
-                params.append(f"%{search.lower()}%")
+                # Check if search looks like a player_id (contains hyphens and numbers)
+                if "-" in search and any(c.isdigit() for c in search):
+                    where_clauses.append(f"fp.player_id = ${param_idx}")
+                    params.append(search)
+                else:
+                    where_clauses.append(f"LOWER(CASE WHEN p.display_name != '' THEN p.display_name ELSE concat(p.first_name, ' ', p.last_name) END) LIKE ${param_idx}")
+                    params.append(f"%{search.lower()}%")
                 param_idx += 1
             
             where_sql = "WHERE " + " AND ".join(where_clauses)
@@ -147,8 +152,13 @@ class ProjectionsRepository:
                 param_idx += 1
                 
             if search:
-                where_clauses.append(f"LOWER(CASE WHEN p.display_name != '' THEN p.display_name ELSE concat(p.first_name, ' ', p.last_name) END) LIKE ${param_idx}")
-                params.append(f"%{search.lower()}%")
+                # Check if search looks like a player_id (contains hyphens and numbers)
+                if "-" in search and any(c.isdigit() for c in search):
+                    where_clauses.append(f"fp.player_id = ${param_idx}")
+                    params.append(search)
+                else:
+                    where_clauses.append(f"LOWER(CASE WHEN p.display_name != '' THEN p.display_name ELSE concat(p.first_name, ' ', p.last_name) END) LIKE ${param_idx}")
+                    params.append(f"%{search.lower()}%")
                 param_idx += 1
             
             where_sql = "WHERE " + " AND ".join(where_clauses)

@@ -17,8 +17,8 @@ export default function ProjectionsPage() {
     position: '',
     team: '',
     scoring: 'ppr',
-    season: 2024,
-    week: 10,
+    season: 2025,
+    week: 1,
   });
   
   const [pagination, setPagination] = useState({
@@ -181,6 +181,7 @@ export default function ProjectionsPage() {
               value: filters.season.toString(),
               onChange: (value) => setFilters(prev => ({ ...prev, season: parseInt(value) })),
               options: [
+                { label: '2025', value: '2025' },
                 { label: '2024', value: '2024' },
                 { label: '2023', value: '2023' },
               ],

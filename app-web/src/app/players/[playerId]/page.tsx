@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { useParams } from 'next/navigation';
-import { usePlayerUsage, usePlayers } from '@/lib/queries';
+import { usePlayerUsage, usePlayers, useWeeklyProjections } from '@/lib/queries';
 import { PlayersList } from '@/lib/api-types';
 import { UsageChart } from '@/components/UsageChart';
 import { ProjectionChart } from '@/components/ProjectionChart';
@@ -13,7 +13,7 @@ export default function PlayerDetailPage() {
   const params = useParams();
   const playerId = params.playerId as string;
   
-  const [season] = useState(2024);
+  const [season, setSeason] = useState(2024);
   
   const { data: usageData, isLoading: usageLoading } = usePlayerUsage(
     season,
@@ -24,18 +24,26 @@ export default function PlayerDetailPage() {
   const { data: playersData } = usePlayers({ 
     search: playerId.includes('-') ? undefined : playerId 
   });
+
+  // Fallback: If no usage data, try to get player info from projections by searching for exact player_id
+  const { data: fallbackProjectionData, isLoading: projectionLoading } = useWeeklyProjections(
+    season,
+    1, // Get week 1 projections as fallback for player info
+    { search: playerId, limit: 1 }, // Search by exact player_id
+  );
   
   const player = (playersData as PlayersList)?.items?.find((p) => p.player_id === playerId) || 
-    usageData?.items?.[0];
+    usageData?.items?.[0] ||
+    fallbackProjectionData?.items?.[0]; // Use first (and only) result from player_id search
 
   // Use the dynamic hook to fetch actual points for all occurred weeks
   const { actualDataMap } = usePlayerActualPoints(playerId, season, 'ppr');
 
-  if (usageLoading && !usageData) {
+  if ((usageLoading && !usageData) || (projectionLoading && !fallbackProjectionData)) {
     return <PlayerDetailSkeleton />;
   }
 
-  if (!player && !usageLoading) {
+  if (!player && !usageLoading && !projectionLoading) {
     return (
       <div className="container mx-auto px-4 py-8">
         <div className="text-center py-12">
@@ -49,21 +57,47 @@ export default function PlayerDetailPage() {
   }
 
   // Combine projection data with actual data
+  // If we have usage data, use it (2024 data), otherwise use projection fallback data (2025)
   const projectionData = usageData?.items.map(item => ({
     week: item.week,
     proj: item.proj || 0,
     low: item.low || 0,
     high: item.high || 0,
     actual: actualDataMap.get(item.week), // Add actual data if available
-  })) || [];
+  })) || (fallbackProjectionData?.items || []).map(item => ({
+    week: item.week,
+    proj: item.proj || 0,
+    low: item.low || 0,
+    high: item.high || 0,
+    actual: actualDataMap.get(item.week),
+  }));
 
   return (
     <div className="container mx-auto px-4 py-8">
       {/* Header */}
       <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900 mb-2">
-          {player?.name || (usageLoading ? 'Loading...' : 'Player Name Unavailable')}
-        </h1>
+        <div className="flex items-center justify-between mb-4">
+          <h1 className="text-3xl font-bold text-gray-900">
+            {player?.name || (usageLoading ? 'Loading...' : 'Player Name Unavailable')}
+          </h1>
+          
+          {/* Season Filter */}
+          <div className="flex items-center space-x-2">
+            <label htmlFor="season-select" className="text-sm font-medium text-gray-700">
+              Season:
+            </label>
+            <select
+              id="season-select"
+              value={season}
+              onChange={(e) => setSeason(Number(e.target.value))}
+              className="rounded-md border border-gray-300 bg-white px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+            >
+              <option value={2024}>2024</option>
+              <option value={2025}>2025</option>
+            </select>
+          </div>
+        </div>
+        
         <div className="flex items-center space-x-4 text-gray-600">
           <span className="font-medium">{player?.position}</span>
           <span>•</span>
