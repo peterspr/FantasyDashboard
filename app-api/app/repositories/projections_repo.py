@@ -161,7 +161,7 @@ class ProjectionsRepository:
                 sort_sql = "ORDER BY fp.high DESC"
             elif sort == "name":
                 sort_sql = "ORDER BY p.display_name ASC"
-            elif sort == "proj":
+            elif sort in ["proj", "proj_total"]:
                 sort_sql = "ORDER BY fp.proj_pts_total DESC"
             
             # Count total

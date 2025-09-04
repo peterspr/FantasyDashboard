@@ -1,9 +1,11 @@
 'use client';
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { ColumnDef } from '@tanstack/react-table';
+import Link from 'next/link';
 import { useROSProjections } from '@/lib/queries';
 import { ROSItem, ROSList } from '@/lib/api-types';
+import { apiClient } from '@/lib/api-client';
 import { DataTable } from '@/components/DataTable';
 import { Filters } from '@/components/Filters';
 import { Pagination } from '@/components/Pagination';
@@ -37,7 +39,10 @@ export default function ROSPage() {
     offset: (pagination.page - 1) * pagination.pageSize,
   };
 
+  // React Query approach
   const { data, isLoading, error } = useROSProjections(filters.season, queryParams);
+
+  // Remove hardcoded data - now using React Query only
 
   const columns: ColumnDef<ROSItem>[] = useMemo(() => [
     {
@@ -45,7 +50,12 @@ export default function ROSPage() {
       header: 'Player',
       cell: ({ row }) => (
         <div>
-          <div className="font-medium text-gray-900">{row.original.name}</div>
+          <Link 
+            href={`/players/${row.original.player_id}`}
+            className="font-medium text-blue-600 hover:text-blue-800 hover:underline"
+          >
+            {row.original.name}
+          </Link>
           <div className="text-sm text-gray-500">
             {row.original.position} • {row.original.team}
           </div>
@@ -157,6 +167,7 @@ export default function ROSPage() {
           </div>
         )}
 
+
         {isLoading ? (
           <TableSkeleton />
         ) : (
@@ -175,7 +186,7 @@ export default function ROSPage() {
             currentPage={pagination.page}
             totalPages={totalPages}
             pageSize={pagination.pageSize}
-            totalItems={(data as ROSList).total}
+            totalItems={(data as ROSList)?.total || 0}
             onPageChange={(page) => setPagination(prev => ({ ...prev, page }))}
             onPageSizeChange={(pageSize) => 
               setPagination({ page: 1, pageSize })

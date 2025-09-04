@@ -2,6 +2,7 @@
 
 import React, { useState, useMemo } from 'react';
 import { ColumnDef } from '@tanstack/react-table';
+import Link from 'next/link';
 import { useWeeklyProjections } from '@/lib/queries';
 import { ProjectionItem, ProjectionList } from '@/lib/api-types';
 import { DataTable } from '@/components/DataTable';
@@ -51,7 +52,12 @@ export default function ProjectionsPage() {
       header: 'Player',
       cell: ({ row }) => (
         <div>
-          <div className="font-medium text-gray-900">{row.original.name}</div>
+          <Link 
+            href={`/players/${row.original.player_id}`}
+            className="font-medium text-blue-600 hover:text-blue-800 hover:underline"
+          >
+            {row.original.name}
+          </Link>
           <div className="text-sm text-gray-500">
             {row.original.position} • {row.original.team}
           </div>

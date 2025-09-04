@@ -34,7 +34,11 @@ future_weeks AS (
   FROM current_week_calc cw
   CROSS JOIN {{ ref('f_weekly_projection') }} fw
   WHERE fw.season = cw.season
-    AND fw.week > cw.current_week
+    -- Include all weeks for 2024 (completed season), future weeks for other seasons
+    AND (
+      (fw.season = 2024 AND fw.week >= 1)
+      OR (fw.season != 2024 AND fw.week > cw.current_week)
+    )
     {% if is_incremental() %}
       AND fw.built_at > (SELECT MAX(built_at) FROM {{ this }})
     {% endif %}
