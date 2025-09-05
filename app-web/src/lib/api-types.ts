@@ -180,3 +180,87 @@ export interface MetaResponse {
 export interface HealthResponse {
   status: string;
 }
+
+// Authentication types
+export interface UserProfile {
+  id: string;
+  email: string;
+  name: string;
+  avatar_url?: string;
+}
+
+export interface AuthTokens {
+  access_token: string;
+  refresh_token: string;
+  token_type: string;
+  expires_in: number;
+  user: UserProfile;
+}
+
+export interface GoogleLoginRequest {
+  id_token: string;
+}
+
+// Team management types
+export interface RosterPositions {
+  starters: Record<string, number>;
+  bench: number;
+  ir?: number;
+}
+
+export interface CreateTeamRequest {
+  name: string;
+  league_name?: string;
+  scoring_system: 'ppr' | 'half_ppr' | 'standard';
+  league_size: number;
+  roster_positions: RosterPositions;
+}
+
+export interface UpdateTeamRequest {
+  name?: string;
+  league_name?: string;
+  scoring_system?: 'ppr' | 'half_ppr' | 'standard';
+  league_size?: number;
+  roster_positions?: RosterPositions;
+}
+
+export interface TeamResponse {
+  id: string;
+  name: string;
+  league_name?: string;
+  scoring_system: string;
+  league_size: number;
+  roster_positions: Record<string, any>;
+  created_at: string;
+  updated_at: string;
+  roster_count: number;
+}
+
+export interface RosterSlot {
+  type: 'starter' | 'bench' | 'ir';
+  position?: string;
+  index: number;
+}
+
+export interface RosterPlayerResponse {
+  player_id: string;
+  roster_slot: RosterSlot;
+  added_at: string;
+  player_info?: Record<string, any>;
+}
+
+export interface TeamRosterResponse {
+  team_id: string;
+  players: RosterPlayerResponse[];
+  available_slots: RosterSlot[];
+}
+
+export interface AddPlayerRequest {
+  player_id: string;
+  player_position: string;
+  roster_slot: RosterSlot;
+}
+
+export interface UpdateRosterRequest {
+  roster_slot: RosterSlot;
+}

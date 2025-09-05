@@ -11,44 +11,63 @@
 }}
 
 WITH
--- Get upcoming weeks that need projections but don't have usage data yet
+-- Enhanced upcoming weeks logic that supports cross-year projections
+data_availability AS (
+  SELECT 
+    MAX(season) as max_data_season,
+    MAX(CASE WHEN season = (SELECT MAX(season) FROM {{ ref('f_weekly_usage') }}) THEN week END) as max_data_week
+  FROM {{ ref('f_weekly_usage') }}
+),
+
 upcoming_weeks AS (
   SELECT DISTINCT 
     cw.season,
-    cw.week
+    cw.week,
+    -- Flag indicating if this week needs fallback data
+    CASE 
+      WHEN NOT EXISTS (
+        SELECT 1 FROM {{ ref('f_weekly_usage') }} u
+        WHERE u.season = cw.season AND u.week = cw.week
+      ) THEN true
+      ELSE false
+    END AS needs_fallback
   FROM {{ ref('f_calendar_weeks') }} cw
+  CROSS JOIN data_availability da
   WHERE cw.week_status IN ('current', 'future')
-    AND NOT EXISTS (
-      SELECT 1 FROM {{ ref('f_weekly_usage') }} u
-      WHERE u.season = cw.season AND u.week = cw.week
-    )
-    -- Only include the immediate next week after the latest available data
-    AND (cw.season, cw.week) = (
-      SELECT 
-        CASE 
-          WHEN max_week = 18 THEN max_season + 1
-          ELSE max_season
-        END,
-        CASE 
-          WHEN max_week = 18 THEN 1
-          ELSE max_week + 1
-        END
-      FROM (
-        SELECT 
-          MAX(season) as max_season,
-          MAX(CASE WHEN season = (SELECT MAX(season) FROM {{ ref('f_weekly_usage') }}) THEN week END) as max_week
-        FROM {{ ref('f_weekly_usage') }}
-      ) latest
+    AND (
+      -- Include immediate next week after latest data
+      (cw.season = da.max_data_season AND cw.week = da.max_data_week + 1)
+      -- Include all weeks for seasons beyond the max data season (e.g., 2025)
+      OR (cw.season > da.max_data_season AND cw.week <= 18)
     )
 ),
 
--- Create synthetic usage data for upcoming weeks based on most recent player performance
+-- Enhanced synthetic usage supporting cross-year fallback
+player_roster_mapping AS (
+  SELECT DISTINCT
+    u.player_id,
+    u.position,
+    -- Get current team from rosters if available, otherwise use most recent usage team
+    COALESCE(r2025.team, r2024.team, u.team) as current_team,
+    u.team as usage_team
+  FROM {{ ref('f_weekly_usage') }} u
+  LEFT JOIN {{ ref('stg_rosters') }} r2024 ON u.player_id = r2024.player_id AND r2024.season = 2024
+  LEFT JOIN {{ ref('stg_rosters') }} r2025 ON u.player_id = r2025.player_id AND r2025.season = 2025
+  WHERE u.season = (SELECT MAX(season) FROM {{ ref('f_weekly_usage') }})
+    AND u.week >= (SELECT MAX(week) - 4 FROM {{ ref('f_weekly_usage') }} WHERE u.season = (SELECT MAX(season) FROM {{ ref('f_weekly_usage') }}))
+    AND (u.snap_pct > 0.05 OR u.targets > 0 OR u.rush_att > 0)
+),
+
 synthetic_usage AS (
   SELECT 
     uw.season,
     uw.week,
     u.player_id,
-    u.team,
+    -- Use updated team from roster mapping for cross-year projections, fallback to original team
+    CASE 
+      WHEN uw.season > (SELECT MAX(season) FROM {{ ref('f_weekly_usage') }}) THEN COALESCE(prm.current_team, u.team)
+      ELSE u.team
+    END as team,
     u.position,
     u.snap_pct,
     u.route_pct,
@@ -84,15 +103,19 @@ synthetic_usage AS (
       snap_pct_4w
     FROM {{ ref('f_weekly_usage') }}
     WHERE season = (SELECT MAX(season) FROM {{ ref('f_weekly_usage') }})
-      AND week >= (SELECT MAX(week) - 2 FROM {{ ref('f_weekly_usage') }} WHERE season = (SELECT MAX(season) FROM {{ ref('f_weekly_usage') }}))
-      -- Only include players who were active recently
-      AND (snap_pct > 0.1 OR targets > 0 OR rush_att > 0)
+      -- For cross-year fallback, use final 6 weeks of previous season for better sample
+      AND week >= (SELECT GREATEST(MAX(week) - 5, 1) FROM {{ ref('f_weekly_usage') }} WHERE season = (SELECT MAX(season) FROM {{ ref('f_weekly_usage') }}))
+      -- Include players who were meaningfully active
+      AND (snap_pct > 0.05 OR targets > 0 OR rush_att > 0)
     ORDER BY player_id, season DESC, week DESC
   ) u
+  LEFT JOIN player_roster_mapping prm ON u.player_id = prm.player_id
+  WHERE uw.needs_fallback = true
 ),
 
 -- Combine historical and synthetic usage data
 combined_usage AS (
+  -- Existing usage data (when available for the season/week)
   SELECT * FROM {{ ref('f_weekly_usage') }}
   {% if is_incremental() %}
     WHERE built_at > (SELECT MAX(built_at) FROM {{ this }})
@@ -100,6 +123,7 @@ combined_usage AS (
   
   UNION ALL
   
+  -- Synthetic usage data for weeks/seasons without historical data
   SELECT 
     season, week, player_id, team, position,
     snap_pct, route_pct, target_share, rush_share,
@@ -535,6 +559,7 @@ final_projections AS (
   FROM scoring_crossjoin
 )
 
+-- Player projections
 SELECT 
   season,
   week,
@@ -547,3 +572,87 @@ SELECT
   components_json,
   built_at
 FROM final_projections
+WHERE team IS NOT NULL  -- Exclude players without valid team assignments
+
+UNION ALL
+
+-- Defense projections
+SELECT 
+  uw.season,
+  uw.week,
+  ldp.team || '_DST' AS player_id,
+  ldp.team,
+  'DST' AS position,
+  sw.scoring,
+  
+  -- Calculate projected fantasy points
+  ROUND({{ score_defense_points('', 'ldp.proj_points_allowed', 'ldp.proj_sacks', 'ldp.proj_interceptions', 'ldp.proj_fumble_recoveries', 'ldp.proj_def_tds', 'ldp.proj_special_tds', 'ldp.proj_safeties', 'ldp.proj_blocked_kicks') }}::numeric, 2) AS proj_pts,
+  
+  -- Simple confidence intervals (±20% for now)
+  ROUND(({{ score_defense_points('', 'ldp.proj_points_allowed', 'ldp.proj_sacks', 'ldp.proj_interceptions', 'ldp.proj_fumble_recoveries', 'ldp.proj_def_tds', 'ldp.proj_special_tds', 'ldp.proj_safeties', 'ldp.proj_blocked_kicks') }} * 0.8)::numeric, 2) AS low,
+  
+  ROUND(({{ score_defense_points('', 'ldp.proj_points_allowed', 'ldp.proj_sacks', 'ldp.proj_interceptions', 'ldp.proj_fumble_recoveries', 'ldp.proj_def_tds', 'ldp.proj_special_tds', 'ldp.proj_safeties', 'ldp.proj_blocked_kicks') }} * 1.2)::numeric, 2) AS high,
+  
+  -- Components JSON for transparency
+  jsonb_build_object(
+    'points_allowed_proj', ROUND(ldp.proj_points_allowed::numeric, 1),
+    'sacks_proj', ROUND(ldp.proj_sacks::numeric, 2),
+    'interceptions_proj', ROUND(ldp.proj_interceptions::numeric, 2),
+    'fumble_recoveries_proj', ROUND(ldp.proj_fumble_recoveries::numeric, 2),
+    'def_tds_proj', ROUND(ldp.proj_def_tds::numeric, 3),
+    'special_tds_proj', ROUND(ldp.proj_special_tds::numeric, 3),
+    'safeties_proj', ROUND(ldp.proj_safeties::numeric, 3),
+    'blocked_kicks_proj', ROUND(ldp.proj_blocked_kicks::numeric, 3)
+  ) AS components_json,
+  
+  CURRENT_TIMESTAMP AS built_at
+  
+FROM upcoming_weeks uw
+CROSS JOIN (
+  SELECT 
+    team,
+    COALESCE(avg_points_allowed_4w, 21) as proj_points_allowed,
+    COALESCE(avg_sacks_4w, 2) as proj_sacks,
+    COALESCE(avg_ints_4w, 1) as proj_interceptions,
+    COALESCE(avg_fumbles_4w, 1) as proj_fumble_recoveries,
+    0.1 as proj_def_tds,
+    0.05 as proj_special_tds,
+    0.05 as proj_safeties,
+    0.1 as proj_blocked_kicks
+  FROM (
+    SELECT 
+      ds.team,
+      
+      -- 4-week rolling averages for defense performance
+      AVG(ds.points_allowed) OVER (
+        PARTITION BY ds.team 
+        ORDER BY ds.season, ds.week 
+        ROWS BETWEEN 3 PRECEDING AND CURRENT ROW
+      ) AS avg_points_allowed_4w,
+      
+      AVG(ds.sacks) OVER (
+        PARTITION BY ds.team 
+        ORDER BY ds.season, ds.week 
+        ROWS BETWEEN 3 PRECEDING AND CURRENT ROW
+      ) AS avg_sacks_4w,
+      
+      AVG(ds.interceptions) OVER (
+        PARTITION BY ds.team 
+        ORDER BY ds.season, ds.week 
+        ROWS BETWEEN 3 PRECEDING AND CURRENT ROW
+      ) AS avg_ints_4w,
+      
+      AVG(ds.fumble_recoveries) OVER (
+        PARTITION BY ds.team 
+        ORDER BY ds.season, ds.week 
+        ROWS BETWEEN 3 PRECEDING AND CURRENT ROW
+      ) AS avg_fumbles_4w,
+      
+      ROW_NUMBER() OVER (PARTITION BY ds.team ORDER BY ds.season DESC, ds.week DESC) as rn
+      
+    FROM {{ ref('stg_team_defense_stats') }} ds
+    WHERE ds.season >= 2023
+  ) team_defense_rolling_avg
+  WHERE rn = 1
+) ldp
+CROSS JOIN {{ ref('scoring_weights') }} sw

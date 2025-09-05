@@ -34,20 +34,56 @@ class PlayersRepository:
             
             where_sql = "WHERE " + " AND ".join(where_clauses) if where_clauses else ""
             
-            # Count total
-            count_query = f"SELECT COUNT(*) FROM (SELECT DISTINCT ON (player_id) player_id, display_name, first_name, last_name, position FROM dwh_staging.stg_players) p {where_sql}"
+            # Count total - include both players and defenses
+            count_query = f"""
+            SELECT COUNT(*) FROM (
+                SELECT 
+                    player_id, 
+                    CASE WHEN display_name != '' THEN display_name ELSE concat(first_name, ' ', last_name) END as name, 
+                    NULL as team, 
+                    position
+                FROM (SELECT DISTINCT ON (player_id) player_id, display_name, first_name, last_name, position FROM dwh_staging.stg_players) p
+                
+                UNION ALL
+                
+                -- Include defenses
+                SELECT DISTINCT
+                    player_id,
+                    team || ' DST' as name,
+                    team,
+                    position
+                FROM dwh_staging.stg_team_defense_stats
+                WHERE season = (SELECT MAX(season) FROM dwh_staging.stg_team_defense_stats)
+            ) players
+            {where_sql}
+            """
             total = await conn.fetchval(count_query, *params)
             
-            # Get results
+            # Get results - include both players and defenses
             query = f"""
-            SELECT 
-                player_id, 
-                CASE WHEN display_name != '' THEN display_name ELSE concat(first_name, ' ', last_name) END as name, 
-                NULL as team, 
-                position
-            FROM (SELECT DISTINCT ON (player_id) player_id, display_name, first_name, last_name, position FROM dwh_staging.stg_players) p
+            WITH players AS (
+                SELECT 
+                    player_id, 
+                    CASE WHEN display_name != '' THEN display_name ELSE concat(first_name, ' ', last_name) END as name, 
+                    NULL as team, 
+                    position
+                FROM (SELECT DISTINCT ON (player_id) player_id, display_name, first_name, last_name, position FROM dwh_staging.stg_players) p
+                
+                UNION ALL
+                
+                -- Include defenses
+                SELECT DISTINCT
+                    player_id,
+                    team || ' DST' as name,
+                    team,
+                    position
+                FROM dwh_staging.stg_team_defense_stats
+                WHERE season = (SELECT MAX(season) FROM dwh_staging.stg_team_defense_stats)
+            )
+            SELECT player_id, name, team, position 
+            FROM players
             {where_sql}
-            ORDER BY CASE WHEN display_name != '' THEN display_name ELSE concat(first_name, ' ', last_name) END ASC
+            ORDER BY name ASC
             LIMIT ${param_idx} OFFSET ${param_idx + 1}
             """
             params.extend([limit, offset])

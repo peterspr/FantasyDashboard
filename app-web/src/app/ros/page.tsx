@@ -18,7 +18,7 @@ export default function ROSPage() {
     position: '',
     team: '',
     scoring: 'ppr',
-    season: 2024,
+    season: 2025,
   });
   
   const [pagination, setPagination] = useState({

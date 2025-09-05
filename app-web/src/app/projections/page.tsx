@@ -117,6 +117,14 @@ export default function ProjectionsPage() {
                   {comp.total_td_pred && <div>Total TD: {formatNumber(comp.total_td_pred)}</div>}
                 </>
               );
+            case 'DST':
+              return (
+                <>
+                  {comp.points_allowed_proj && <div>PA: {formatNumber(comp.points_allowed_proj)}</div>}
+                  {comp.sacks_proj && <div>Sacks: {formatNumber(comp.sacks_proj)}</div>}
+                  {comp.interceptions_proj && <div>INT: {formatNumber(comp.interceptions_proj)}</div>}
+                </>
+              );
             default:
               return (
                 <>

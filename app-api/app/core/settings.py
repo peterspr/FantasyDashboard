@@ -33,6 +33,17 @@ class Settings(BaseSettings):
         default=["http://localhost:3000"], alias="ALLOWED_ORIGINS"
     )
     
+    # Authentication
+    jwt_secret_key: str = Field(default="your-secret-key-change-in-production", alias="JWT_SECRET_KEY")
+    jwt_refresh_secret_key: str = Field(default="your-refresh-secret-key-change-in-production", alias="JWT_REFRESH_SECRET_KEY")
+    access_token_expire_minutes: int = Field(default=30, alias="ACCESS_TOKEN_EXPIRE_MINUTES")
+    refresh_token_expire_days: int = Field(default=30, alias="REFRESH_TOKEN_EXPIRE_DAYS")
+    
+    # Google OAuth
+    google_client_id: str = Field(default="", alias="GOOGLE_CLIENT_ID")
+    google_client_secret: str = Field(default="", alias="GOOGLE_CLIENT_SECRET")
+    google_redirect_uri: str = Field(default="http://localhost:3000/auth/callback", alias="GOOGLE_REDIRECT_URI")
+    
     @field_validator('allowed_origins')
     @classmethod
     def parse_allowed_origins(cls, v) -> List[str]:

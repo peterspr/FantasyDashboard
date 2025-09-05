@@ -3,7 +3,8 @@ from contextlib import asynccontextmanager
 import asyncpg
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
-from app.core.config import settings
+from app.core.config import Settings
+settings = Settings()
 
 engine = create_async_engine(
     settings.DATABASE_URL.replace("postgresql+psycopg://", "postgresql+asyncpg://"),

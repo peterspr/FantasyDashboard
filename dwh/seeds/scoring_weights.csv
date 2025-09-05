@@ -1,4 +1,4 @@
-scoring,reception,rec_yd,rec_td,rush_yd,rush_td,pass_yd,pass_td,int,fumble
-ppr,1.0,0.1,6,0.1,6,0.04,4,-2,-2
-half,0.5,0.1,6,0.1,6,0.04,4,-2,-2
-std,0.0,0.1,6,0.1,6,0.04,4,-2,-2
+scoring,reception,rec_yd,rec_td,rush_yd,rush_td,pass_yd,pass_td,int,fumble,pts_allowed_0,pts_allowed_1_6,pts_allowed_7_13,pts_allowed_14_20,pts_allowed_21_27,pts_allowed_28_34,pts_allowed_35_plus,sacks,def_interceptions,fumble_recoveries,def_tds,special_tds,safeties,blocked_kicks
+ppr,1.0,0.1,6,0.1,6,0.04,4,-2,-2,10,7,4,1,0,-1,-4,1,2,2,6,6,2,2
+half,0.5,0.1,6,0.1,6,0.04,4,-2,-2,10,7,4,1,0,-1,-4,1,2,2,6,6,2,2
+std,0.0,0.1,6,0.1,6,0.04,4,-2,-2,10,7,4,1,0,-1,-4,1,2,2,6,6,2,2

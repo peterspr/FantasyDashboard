@@ -2,11 +2,13 @@ from typing import List, Dict, Any
 from fastapi import APIRouter, HTTPException
 from sqlalchemy import create_engine, text
 from app.core.settings import get_settings
-from app.api.routers import players, projections, ros, usage, scoring, actual
+from app.api.routers import players, projections, ros, usage, scoring, actual, auth, teams
 
 router = APIRouter()
 
 # Include all sub-routers
+router.include_router(auth.router)
+router.include_router(teams.router)
 router.include_router(players.router)
 router.include_router(projections.router)
 router.include_router(ros.router)

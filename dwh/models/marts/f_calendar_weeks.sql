@@ -10,6 +10,30 @@ WITH distinct_weeks AS (
   WHERE game_type = 'REG'  -- Regular season only
     AND week IS NOT NULL
   GROUP BY season, week
+),
+
+-- Generate synthetic 2025 calendar when schedules aren't available yet
+-- Typical NFL season starts second Thursday in September
+synthetic_2025_weeks AS (
+  SELECT 
+    2025 AS season,
+    week_num AS week,
+    -- Start 2025 season on September 11, 2025 (second Thursday)
+    DATE '2025-09-11' + ((week_num - 1) * INTERVAL '7 days') AS week_start_date,
+    DATE '2025-09-11' + ((week_num - 1) * INTERVAL '7 days') + INTERVAL '6 days' AS week_end_date
+  FROM generate_series(1, 18) AS week_num
+  WHERE NOT EXISTS (
+    SELECT 1 FROM {{ ref('stg_schedules') }} 
+    WHERE season = 2025 AND game_type = 'REG'
+  )
+),
+
+combined_weeks AS (
+  SELECT * FROM distinct_weeks
+  
+  UNION ALL
+  
+  SELECT * FROM synthetic_2025_weeks
 )
 
 SELECT
@@ -25,5 +49,5 @@ SELECT
   END AS week_status,
   CURRENT_TIMESTAMP AS built_at
 
-FROM distinct_weeks
+FROM combined_weeks
 ORDER BY season, week

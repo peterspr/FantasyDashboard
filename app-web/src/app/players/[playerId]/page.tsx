@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { useParams } from 'next/navigation';
-import { usePlayerUsage, usePlayers, useWeeklyProjections } from '@/lib/queries';
+import { usePlayerUsage, usePlayers, useWeeklyProjections, useROSProjections } from '@/lib/queries';
 import { PlayersList } from '@/lib/api-types';
 import { UsageChart } from '@/components/UsageChart';
 import { ProjectionChart } from '@/components/ProjectionChart';
@@ -38,6 +38,17 @@ export default function PlayerDetailPage() {
 
   // Use the dynamic hook to fetch actual points for all occurred weeks
   const { actualDataMap } = usePlayerActualPoints(playerId, season, 'ppr');
+
+  // Check if this is a defense player
+  const isDefense = player?.position === 'DST';
+  
+  // For defenses, also get projection data to show defense-specific stats
+  const { data: defenseProjectionData } = useWeeklyProjections(
+    season,
+    undefined, // Get all weeks
+    { search: playerId, limit: 20 }, // Search by exact player_id, get more weeks
+    isDefense
+  );
 
   if ((usageLoading && !usageData) || (projectionLoading && !fallbackProjectionData)) {
     return <PlayerDetailSkeleton />;
@@ -120,25 +131,38 @@ export default function PlayerDetailPage() {
             />
           </div>
 
-          {/* Usage Trends Chart */}
+          {/* Usage/Performance Trends Chart */}
           <div className="bg-white p-6 rounded-lg border border-gray-200">
-            <UsageChart
-              data={usageData?.items || []}
-              title="Usage Trends"
-              metrics={['snap_pct', 'target_share']}
-            />
+            {isDefense ? (
+              // Defense-specific chart showing defensive performance metrics
+              <div>
+                <h3 className="text-lg font-semibold text-gray-900 mb-4">Defense Performance</h3>
+                <p className="text-gray-600 text-sm">
+                  Defense performance metrics would show sacks, interceptions, points allowed trends
+                </p>
+                {/* TODO: Implement defense-specific chart component */}
+              </div>
+            ) : (
+              <UsageChart
+                data={usageData?.items || []}
+                title="Usage Trends"
+                metrics={['snap_pct', 'target_share']}
+              />
+            )}
           </div>
         </div>
 
-        {/* Detailed Usage Chart with Volume */}
-        <div className="bg-white p-6 rounded-lg border border-gray-200">
-          <UsageChart
-            data={usageData?.items || []}
-            title="Usage & Volume Trends"
-            metrics={['snap_pct', 'route_pct', 'target_share']}
-            showVolume={true}
-          />
-        </div>
+        {/* Detailed Usage/Performance Chart */}
+        {!isDefense && (
+          <div className="bg-white p-6 rounded-lg border border-gray-200">
+            <UsageChart
+              data={usageData?.items || []}
+              title="Usage & Volume Trends"
+              metrics={['snap_pct', 'route_pct', 'target_share']}
+              showVolume={true}
+            />
+          </div>
+        )}
 
         {/* Weekly Stats Table */}
         <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
@@ -156,56 +180,114 @@ export default function PlayerDetailPage() {
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Projection
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Snap %
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Route %
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Target Share
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Targets
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Routes
-                  </th>
+                  {isDefense ? (
+                    // Defense-specific columns
+                    <>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Points Allowed
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Sacks
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Interceptions
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Fumble Rec
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Def TDs
+                      </th>
+                    </>
+                  ) : (
+                    // Offensive player columns
+                    <>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Snap %
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Route %
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Target Share
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Targets
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Routes
+                      </th>
+                    </>
+                  )}
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
-                {usageData?.items.map((item) => (
-                  <tr key={item.week} className="hover:bg-gray-50">
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                      {item.week}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-blue-600 font-semibold">
-                      {item.proj ? item.proj.toFixed(1) : '-'}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      {(item.snap_pct !== null && item.snap_pct !== undefined) ? (item.snap_pct * 100).toFixed(1) + '%' : '-'}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      {(item.route_pct !== null && item.route_pct !== undefined) ? (item.route_pct * 100).toFixed(1) + '%' : '-'}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      {item.target_share ? (item.target_share * 100).toFixed(1) + '%' : '-'}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      {item.targets || '-'}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      {(item.routes !== null && item.routes !== undefined && item.routes !== 0) ? item.routes : '-'}
-                    </td>
-                  </tr>
-                ))}
+                {isDefense ? (
+                  // Defense stats rows
+                  defenseProjectionData?.items?.map((item) => {
+                    const components = item.components ? JSON.parse(item.components) : {};
+                    return (
+                      <tr key={item.week} className="hover:bg-gray-50">
+                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                          {item.week}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-blue-600 font-semibold">
+                          {item.proj ? item.proj.toFixed(1) : '-'}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                          {components.points_allowed_proj ? components.points_allowed_proj.toFixed(1) : '-'}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                          {components.sacks_proj ? components.sacks_proj.toFixed(1) : '-'}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                          {components.interceptions_proj ? components.interceptions_proj.toFixed(1) : '-'}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                          {components.fumble_recoveries_proj ? components.fumble_recoveries_proj.toFixed(1) : '-'}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                          {components.def_tds_proj ? components.def_tds_proj.toFixed(2) : '-'}
+                        </td>
+                      </tr>
+                    );
+                  }) || []
+                ) : (
+                  // Offensive player stats rows
+                  usageData?.items.map((item) => (
+                    <tr key={item.week} className="hover:bg-gray-50">
+                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                        {item.week}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-blue-600 font-semibold">
+                        {item.proj ? item.proj.toFixed(1) : '-'}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                        {(item.snap_pct !== null && item.snap_pct !== undefined) ? (item.snap_pct * 100).toFixed(1) + '%' : '-'}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                        {(item.route_pct !== null && item.route_pct !== undefined) ? (item.route_pct * 100).toFixed(1) + '%' : '-'}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                        {item.target_share ? (item.target_share * 100).toFixed(1) + '%' : '-'}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                        {item.targets || '-'}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                        {(item.routes !== null && item.routes !== undefined && item.routes !== 0) ? item.routes : '-'}
+                      </td>
+                    </tr>
+                  )) || []
+                )}
               </tbody>
             </table>
           </div>
 
-          {(!usageData?.items || usageData.items.length === 0) && (
+          {((isDefense && (!defenseProjectionData?.items || defenseProjectionData.items.length === 0)) ||
+            (!isDefense && (!usageData?.items || usageData.items.length === 0))) && (
             <div className="text-center py-8 text-gray-500">
-              No usage data available for this player
+              {isDefense ? 'No defense statistics available for this player' : 'No usage data available for this player'}
             </div>
           )}
         </div>

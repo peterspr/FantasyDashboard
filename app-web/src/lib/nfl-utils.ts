@@ -16,35 +16,26 @@ export function getCurrentNFLWeek(): NFLWeek {
   const now = new Date();
   const year = now.getFullYear();
   
-  // HACK: For this demo app, we know we're really in 2024 season
-  // In production, this should use proper date logic
-  // Since system date might be wrong, hardcode to 2024 for now
-  if (year >= 2025) {
-    return {
-      season: 2024,
-      week: 18 // End of 2024 season
-    };
-  }
-  
-  // NFL season typically starts in September
-  // For simplicity, we'll use September 7th as a typical season start
+  // Updated logic to support 2025 season
+  // NFL seasons typically start in early September
   const seasonStart = new Date(year, 8, 7); // September 7th of current year
   
-  // If we're before the season start, we're in the previous season
-  if (now < seasonStart) {
+  // If we're after September 1st of current year, we're in current season
+  if (now >= new Date(year, 8, 1)) {
+    // Calculate week based on days since season start  
+    const daysSinceStart = Math.floor((now.getTime() - seasonStart.getTime()) / (1000 * 60 * 60 * 24));
+    const week = Math.max(1, Math.min(Math.floor(daysSinceStart / 7) + 1, 18));
+    
     return {
-      season: year - 1,
-      week: 18 // End of previous season
+      season: year,
+      week: daysSinceStart < 0 ? 1 : week // If before season start, default to week 1
     };
   }
   
-  // Calculate week based on days since season start
-  const daysSinceStart = Math.floor((now.getTime() - seasonStart.getTime()) / (1000 * 60 * 60 * 24));
-  const week = Math.min(Math.floor(daysSinceStart / 7) + 1, 18);
-  
+  // If we're before September, we're still in previous season
   return {
-    season: year,
-    week
+    season: year - 1,
+    week: 18 // End of previous season
   };
 }
 

@@ -13,13 +13,33 @@ import {
   ROSParams,
   UsageParams,
   ActualParams,
+  // Authentication types
+  UserProfile,
+  AuthTokens,
+  GoogleLoginRequest,
+  // Team management types
+  TeamResponse,
+  CreateTeamRequest,
+  UpdateTeamRequest,
+  TeamRosterResponse,
+  AddPlayerRequest,
+  UpdateRosterRequest,
 } from './api-types';
 
 class ApiClient {
   private baseUrl: string;
+  private accessToken: string | null = null;
 
   constructor(baseUrl: string = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000') {
     this.baseUrl = baseUrl;
+  }
+
+  setAccessToken(token: string | null) {
+    this.accessToken = token;
+  }
+
+  getAccessToken(): string | null {
+    return this.accessToken;
   }
 
   private async request<T>(
@@ -28,11 +48,19 @@ class ApiClient {
   ): Promise<T> {
     const url = `${this.baseUrl}${endpoint}`;
     
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+      ...options.headers,
+    };
+
+    // Add authorization header if token exists
+    if (this.accessToken) {
+      headers.Authorization = `Bearer ${this.accessToken}`;
+    }
+    
     const config: RequestInit = {
-      headers: {
-        'Content-Type': 'application/json',
-        ...options.headers,
-      },
+      headers,
+      credentials: 'include', // Include cookies for CORS
       ...options,
     };
 
@@ -127,6 +155,85 @@ class ApiClient {
 
   async getScoringPresets(): Promise<ScoringPresetsResponse> {
     return this.request<ScoringPresetsResponse>('/v1/scoring/presets');
+  }
+
+  // Authentication
+  async loginWithGoogle(idToken: string): Promise<AuthTokens> {
+    const request: GoogleLoginRequest = { id_token: idToken };
+    return this.request<AuthTokens>('/auth/google/login', {
+      method: 'POST',
+      body: JSON.stringify(request),
+    });
+  }
+
+  async refreshToken(): Promise<AuthTokens> {
+    return this.request<AuthTokens>('/auth/refresh', {
+      method: 'POST',
+    });
+  }
+
+  async logout(): Promise<{ message: string }> {
+    return this.request<{ message: string }>('/auth/logout', {
+      method: 'POST',
+    });
+  }
+
+  async getCurrentUser(): Promise<UserProfile> {
+    return this.request<UserProfile>('/auth/me');
+  }
+
+  // Team Management
+  async getTeams(): Promise<TeamResponse[]> {
+    return this.request<TeamResponse[]>('/teams');
+  }
+
+  async createTeam(request: CreateTeamRequest): Promise<TeamResponse> {
+    return this.request<TeamResponse>('/teams', {
+      method: 'POST',
+      body: JSON.stringify(request),
+    });
+  }
+
+  async getTeam(teamId: string): Promise<TeamResponse> {
+    return this.request<TeamResponse>(`/teams/${teamId}`);
+  }
+
+  async updateTeam(teamId: string, request: UpdateTeamRequest): Promise<TeamResponse> {
+    return this.request<TeamResponse>(`/teams/${teamId}`, {
+      method: 'PUT',
+      body: JSON.stringify(request),
+    });
+  }
+
+  async deleteTeam(teamId: string): Promise<{ message: string }> {
+    return this.request<{ message: string }>(`/teams/${teamId}`, {
+      method: 'DELETE',
+    });
+  }
+
+  // Roster Management
+  async getTeamRoster(teamId: string): Promise<TeamRosterResponse> {
+    return this.request<TeamRosterResponse>(`/teams/${teamId}/roster`);
+  }
+
+  async addPlayerToRoster(teamId: string, request: AddPlayerRequest): Promise<any> {
+    return this.request<any>(`/teams/${teamId}/roster`, {
+      method: 'POST',
+      body: JSON.stringify(request),
+    });
+  }
+
+  async updatePlayerRoster(teamId: string, playerId: string, request: UpdateRosterRequest): Promise<any> {
+    return this.request<any>(`/teams/${teamId}/roster/${playerId}`, {
+      method: 'PUT',
+      body: JSON.stringify(request),
+    });
+  }
+
+  async removePlayerFromRoster(teamId: string, playerId: string): Promise<{ message: string }> {
+    return this.request<{ message: string }>(`/teams/${teamId}/roster/${playerId}`, {
+      method: 'DELETE',
+    });
   }
 }
 
