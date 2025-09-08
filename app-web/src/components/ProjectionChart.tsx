@@ -15,10 +15,10 @@ import { formatNumber } from '@/lib/utils';
 
 interface ProjectionDataPoint {
   week: number;
-  proj: number;
-  low: number;
-  high: number;
-  actual?: number;
+  proj: number | null;
+  low: number | null;
+  high: number | null;
+  actual?: number | undefined;
 }
 
 interface ProjectionChartProps {
@@ -75,11 +75,21 @@ export function ProjectionChart({
                   <div className="bg-white p-3 border border-gray-200 rounded-lg shadow-lg">
                     <p className="font-medium text-gray-900">Week {label}</p>
                     <div className="space-y-1 mt-2">
-                      {payload.map((entry, index) => (
-                        <p key={index} style={{ color: entry.color }}>
-                          {entry.dataKey}: {formatNumber(entry.value as number)}
-                        </p>
-                      ))}
+                      {payload.map((entry, index) => {
+                        // Check if this is a bye week (null projection)
+                        if (entry.dataKey === 'proj' && entry.value === null) {
+                          return (
+                            <p key={index} style={{ color: '#6b7280' }}>
+                              Bye Week
+                            </p>
+                          );
+                        }
+                        return (
+                          <p key={index} style={{ color: entry.color }}>
+                            {entry.dataKey}: {formatNumber(entry.value as number)}
+                          </p>
+                        );
+                      })}
                     </div>
                   </div>
                 );

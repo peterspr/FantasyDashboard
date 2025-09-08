@@ -119,20 +119,17 @@ export default function PlayerDetailPage() {
       // Prefer usage data if available, otherwise use projection data
       const dataSource = usageItem || projectionItem;
       
-      if (dataSource) {
-        // Only include actual data if the week has actually occurred
-        const hasOccurred = hasNFLWeekOccurred(season, week);
-        const actualValue = hasOccurred ? actualDataMap.get(week) : undefined;
-        
-        projectionData.push({
-          week: week,
-          proj: dataSource.proj || 0,
-          low: dataSource.low || 0,
-          high: dataSource.high || 0,
-          actual: actualValue, // Only add actual if the week has occurred AND data exists
-        });
-        
-      }
+      // Always include the week, but use null for projection data if no data source exists (bye week)
+      const hasOccurred = hasNFLWeekOccurred(season, week);
+      const actualValue = hasOccurred ? actualDataMap.get(week) : undefined;
+      
+      projectionData.push({
+        week: week,
+        proj: dataSource ? (dataSource.proj || 0) : null, // null creates gap in chart for bye weeks
+        low: dataSource ? (dataSource.low || 0) : null,
+        high: dataSource ? (dataSource.high || 0) : null,
+        actual: actualValue, // Only add actual if the week has occurred AND data exists
+      });
     }
     
     return projectionData;

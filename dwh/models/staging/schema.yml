@@ -14,7 +14,7 @@ models:
         description: "Standardized player position"
         tests:
           - accepted_values:
-              values: ['QB', 'RB', 'WR', 'TE', 'K', 'DEF', 'FB', 'OL', 'DL', 'LB', 'DB', 'ST', 'C', 'CB', 'DE', 'DT', 'FS', 'G', 'ILB', 'LS', 'MLB', 'NT', 'OLB', 'OT', 'P', 'S', 'SAF']
+              values: ['QB', 'RB', 'WR', 'TE', 'K', 'DEF', 'FB', 'OL', 'DL', 'LB', 'DB', 'ST', 'C', 'CB', 'DE', 'DT', 'FS', 'G', 'ILB', 'LS', 'MLB', 'NT', 'OLB', 'OT', 'P', 'S', 'SAF', 'DST']
       - name: status
         description: "Player roster status"
 
