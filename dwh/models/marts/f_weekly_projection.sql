@@ -35,8 +35,8 @@ upcoming_weeks AS (
   CROSS JOIN data_availability da
   WHERE cw.week_status IN ('current', 'future')
     AND (
-      -- Include immediate next week after latest data
-      (cw.season = da.max_data_season AND cw.week = da.max_data_week + 1)
+      -- Include all remaining weeks for current data season
+      (cw.season = da.max_data_season AND cw.week > da.max_data_week)
       -- Include all weeks for seasons beyond the max data season (e.g., 2025)
       OR (cw.season > da.max_data_season AND cw.week <= 18)
     )

@@ -18,23 +18,11 @@ upcoming_weeks AS (
       SELECT 1 FROM {{ ref('int_team_week_totals') }} t
       WHERE t.season = cw.season AND t.week = cw.week
     )
-    -- Only include the immediate next week after the latest available data
-    AND (cw.season, cw.week) = (
-      SELECT 
-        CASE 
-          WHEN max_week = 18 THEN max_season + 1
-          ELSE max_season
-        END,
-        CASE 
-          WHEN max_week = 18 THEN 1
-          ELSE max_week + 1
-        END
-      FROM (
-        SELECT 
-          MAX(season) as max_season,
-          MAX(CASE WHEN season = (SELECT MAX(season) FROM {{ ref('int_team_week_totals') }}) THEN week END) as max_week
-        FROM {{ ref('int_team_week_totals') }}
-      ) latest
+    -- Include all remaining weeks for current data season and all weeks for future seasons
+    AND (
+      (cw.season = (SELECT MAX(season) FROM {{ ref('int_team_week_totals') }}) 
+       AND cw.week > (SELECT MAX(CASE WHEN season = (SELECT MAX(season) FROM {{ ref('int_team_week_totals') }}) THEN week END) FROM {{ ref('int_team_week_totals') }}))
+      OR (cw.season > (SELECT MAX(season) FROM {{ ref('int_team_week_totals') }}) AND cw.week <= 18)
     )
 ),
 
