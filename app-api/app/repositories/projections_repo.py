@@ -234,3 +234,64 @@ class ProjectionsRepository:
                 "limit": limit,
                 "offset": offset
             }
+    
+    async def get_player_season_projections(
+        self,
+        player_id: str,
+        season: int,
+        scoring: str,
+        week_start: int = 1,
+        week_end: int = 18
+    ) -> Dict:
+        """Get all weekly projections for a specific player across a season range"""
+        async with get_raw_connection() as conn:
+            query = """
+            WITH dedupe_players AS (
+                SELECT DISTINCT ON (player_id) 
+                    player_id, display_name, first_name, last_name
+                FROM dwh_staging.stg_players
+            )
+            SELECT 
+                fp.player_id,
+                COALESCE(CASE WHEN p.display_name != '' THEN p.display_name ELSE concat(p.first_name, ' ', p.last_name) END, fp.player_id) as name,
+                fp.team,
+                fp.position,
+                fp.scoring,
+                fp.proj_pts as proj,
+                fp.low,
+                fp.high,
+                fp.components_json as components,
+                fp.season,
+                fp.week
+            FROM dwh_marts.f_weekly_projection fp
+            LEFT JOIN dedupe_players p ON fp.player_id = p.player_id
+            WHERE fp.player_id = $1 
+                AND fp.season = $2 
+                AND fp.scoring = $3
+                AND fp.week >= $4
+                AND fp.week <= $5
+            ORDER BY fp.week ASC
+            """
+            
+            rows = await conn.fetch(query, player_id, season, scoring, week_start, week_end)
+            
+            # Parse JSON components
+            items = []
+            for row in rows:
+                item = dict(row)
+                if item.get('components'):
+                    try:
+                        item['components'] = json.loads(item['components'])
+                    except (json.JSONDecodeError, TypeError):
+                        item['components'] = {}
+                items.append(item)
+            
+            return {
+                "player_id": player_id,
+                "season": season,
+                "scoring": scoring,
+                "week_start": week_start,
+                "week_end": week_end,
+                "items": items,
+                "total": len(items)
+            }

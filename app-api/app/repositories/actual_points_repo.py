@@ -105,3 +105,58 @@ class ActualPointsRepository:
                 "week": week,
                 "scoring": scoring
             }
+    
+    async def get_player_season_actual_points(
+        self,
+        player_id: str,
+        season: int,
+        scoring: str = "ppr",
+        week_start: int = 1,
+        week_end: int = 18
+    ) -> Dict[str, Any]:
+        """Get actual points for a specific player across a season range"""
+        async with get_raw_connection() as conn:
+            query = """
+                SELECT 
+                    player_id,
+                    name,
+                    team,
+                    position,
+                    scoring,
+                    actual_points,
+                    season,
+                    week
+                FROM dwh_marts.f_weekly_actual_points
+                WHERE player_id = $1 
+                    AND season = $2 
+                    AND scoring = $3
+                    AND week >= $4
+                    AND week <= $5
+                ORDER BY week ASC
+            """
+            
+            rows = await conn.fetch(query, player_id, season, scoring, week_start, week_end)
+            
+            items = [
+                {
+                    "player_id": row["player_id"],
+                    "name": row["name"],
+                    "team": row["team"],
+                    "position": row["position"], 
+                    "scoring": row["scoring"],
+                    "actual_points": float(row["actual_points"]) if row["actual_points"] else 0.0,
+                    "season": row["season"],
+                    "week": row["week"],
+                }
+                for row in rows
+            ]
+            
+            return {
+                "player_id": player_id,
+                "season": season,
+                "scoring": scoring,
+                "week_start": week_start,
+                "week_end": week_end,
+                "items": items,
+                "total": len(items)
+            }

@@ -23,32 +23,57 @@ export function usePlayerActualPoints(
   const { data, isLoading, error } = useQuery({
     queryKey: ['player-actual-points', playerId, season, scoring, occurredWeeks],
     queryFn: async () => {
-      // Fetch actual points for all occurred weeks in parallel
-      const promises = occurredWeeks.map(week =>
-        apiClient.getActualPoints(season, week, {
-          limit: 1000, // Get all players to find our target player
+      try {
+        // Use bulk endpoint to get all actual points for the player
+        const result = await apiClient.getPlayerSeasonActualPoints(playerId, season, {
           scoring,
-        })
-      );
-      
-      const results = await Promise.all(promises);
-      
-      // Create a map of week -> actual points for this specific player
-      const actualDataMap = new Map<number, number>();
-      
-      results.forEach((result, index) => {
-        const week = occurredWeeks[index];
+          week_start: 1,
+          week_end: Math.max(...occurredWeeks, 1) // Use the highest occurred week as end
+        });
+        
+        // Create a map of week -> actual points for this specific player
+        const actualDataMap = new Map<number, number>();
+        
         if (result && result.items) {
-          const playerData = result.items.find(
-            (item: ActualPointsItem) => item.player_id === playerId
-          );
-          if (playerData && playerData.actual_points !== null && playerData.actual_points !== undefined) {
-            actualDataMap.set(week, playerData.actual_points);
-          }
+          result.items.forEach((item: ActualPointsItem) => {
+            // Only include weeks that have actually occurred
+            if (occurredWeeks.includes(item.week) && 
+                item.actual_points !== null && 
+                item.actual_points !== undefined) {
+              actualDataMap.set(item.week, item.actual_points);
+            }
+          });
         }
-      });
-      
-      return actualDataMap;
+        
+        return actualDataMap;
+      } catch (error) {
+        console.error('Error fetching bulk actual points, falling back to individual requests:', error);
+        
+        // Fallback to original approach if bulk endpoint fails
+        const promises = occurredWeeks.map(week =>
+          apiClient.getActualPoints(season, week, {
+            limit: 1000,
+            scoring,
+          })
+        );
+        
+        const results = await Promise.all(promises);
+        const actualDataMap = new Map<number, number>();
+        
+        results.forEach((result, index) => {
+          const week = occurredWeeks[index];
+          if (result && result.items) {
+            const playerData = result.items.find(
+              (item: ActualPointsItem) => item.player_id === playerId
+            );
+            if (playerData && playerData.actual_points !== null && playerData.actual_points !== undefined) {
+              actualDataMap.set(week, playerData.actual_points);
+            }
+          }
+        });
+        
+        return actualDataMap;
+      }
     },
     staleTime: 10 * 60 * 1000, // 10 minutes
     placeholderData: (previousData) => previousData,

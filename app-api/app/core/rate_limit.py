@@ -7,7 +7,7 @@ class SimpleRateLimiter:
         # Store: {client_ip: (request_count, window_start_time)}
         self.clients: Dict[str, Tuple[int, float]] = {}
         self.window_size = 60  # 60 seconds
-        self.max_requests = 240  # 60 requests per minute
+        self.max_requests = 600  # 10 requests per second
     
     def _get_client_ip(self, request: Request) -> str:
         """Get client IP address"""

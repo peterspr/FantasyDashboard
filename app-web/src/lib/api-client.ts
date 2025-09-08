@@ -116,6 +116,15 @@ class ApiClient {
     return this.request<ProjectionList>(`/v1/projections/${season}/${week}${queryString}`);
   }
 
+  async getPlayerSeasonProjections(
+    playerId: string,
+    season: number,
+    params: { scoring?: string; week_start?: number; week_end?: number } = {}
+  ): Promise<any> {
+    const queryString = this.buildQueryString(params);
+    return this.request<any>(`/v1/projections/bulk/${season}/player/${playerId}${queryString}`);
+  }
+
   // Rest of Season
   async getROSProjections(
     season: number,
@@ -143,6 +152,15 @@ class ApiClient {
   ): Promise<ActualPointsList> {
     const queryString = this.buildQueryString(params);
     return this.request<ActualPointsList>(`/v1/actual/${season}/${week}${queryString}`);
+  }
+
+  async getPlayerSeasonActualPoints(
+    playerId: string,
+    season: number,
+    params: { scoring?: string; week_start?: number; week_end?: number } = {}
+  ): Promise<any> {
+    const queryString = this.buildQueryString(params);
+    return this.request<any>(`/v1/actual/bulk/${season}/player/${playerId}${queryString}`);
   }
 
   // Scoring

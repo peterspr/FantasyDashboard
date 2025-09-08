@@ -39,32 +39,41 @@ export default function PlayerDetailPage() {
       : playerId.includes('-') ? undefined : playerId 
   });
 
-  // Get all weekly projections for the entire season by fetching multiple weeks
-  // Create a custom hook that fetches all weeks for this player
+  // Get all weekly projections for the entire season using bulk endpoint
   const { data: allProjectionsData, isLoading: allProjectionsLoading } = useQuery({
-    queryKey: ['player-all-projections', season, playerId],
+    queryKey: ['player-season-projections', season, playerId],
     queryFn: async () => {
-      // Fetch projections for all 18 weeks in parallel
-      const promises = Array.from({ length: 18 }, (_, i) => i + 1).map(week =>
-        apiClient.getWeeklyProjections(season, week, {
-          search: isDefensePlayer 
-            ? `${playerId.replace('_DST', '')} Defense`
-            : playerId,
-          limit: 10 // Small limit since we're searching for a specific player
-        }).catch(() => ({ items: [] })) // Handle errors gracefully
-      );
-      
-      const results = await Promise.all(promises);
-      
-      // Combine all results into a single list
-      const allItems = results.flatMap((result, index) => {
-        const week = index + 1;
-        // Find the player in this week's results
-        const playerData = result.items?.find(item => item.player_id === playerId);
-        return playerData ? [{ ...playerData, week }] : [];
-      });
-      
-      return { items: allItems };
+      try {
+        // Use bulk endpoint for non-defense players
+        if (!isDefensePlayer) {
+          const result = await apiClient.getPlayerSeasonProjections(playerId, season, {
+            scoring: 'ppr',
+            week_start: 1,
+            week_end: 18
+          });
+          return { items: result.items || [] };
+        } else {
+          // For defense players, fallback to search approach (single bulk search)
+          const promises = Array.from({ length: 18 }, (_, i) => i + 1).map(week =>
+            apiClient.getWeeklyProjections(season, week, {
+              search: `${playerId.replace('_DST', '')} Defense`,
+              limit: 10
+            }).catch(() => ({ items: [] }))
+          );
+          
+          const results = await Promise.all(promises);
+          const allItems = results.flatMap((result, index) => {
+            const week = index + 1;
+            const playerData = result.items?.find(item => item.player_id === playerId);
+            return playerData ? [{ ...playerData, week }] : [];
+          });
+          
+          return { items: allItems };
+        }
+      } catch (error) {
+        console.error('Error fetching player projections:', error);
+        return { items: [] };
+      }
     },
     staleTime: 5 * 60 * 1000, // 5 minutes
     enabled: !!playerId && season > 0,
@@ -107,7 +116,7 @@ export default function PlayerDetailPage() {
     const usageMap = new Map((usageData?.items || []).map(item => [item.week, item]));
     
     // Create map from all projections data 
-    const projectionMap = new Map((allProjectionsData?.items || []).map(item => [item.week, item]));
+    const projectionMap = new Map((allProjectionsData?.items || []).map((item: any) => [item.week, item]));
     
     const projectionData = [];
     
@@ -116,20 +125,20 @@ export default function PlayerDetailPage() {
       const usageItem = usageMap.get(week);
       const projectionItem = projectionMap.get(week);
       
-      // Prefer usage data if available, otherwise use projection data
-      const dataSource = usageItem || projectionItem;
-      
-      // Always include the week, but use null for projection data if no data source exists (bye week)
-      const hasOccurred = hasNFLWeekOccurred(season, week);
-      const actualValue = hasOccurred ? actualDataMap.get(week) : undefined;
-      
-      projectionData.push({
-        week: week,
-        proj: dataSource ? (dataSource.proj || 0) : null, // null creates gap in chart for bye weeks
-        low: dataSource ? (dataSource.low || 0) : null,
-        high: dataSource ? (dataSource.high || 0) : null,
-        actual: actualValue, // Only add actual if the week has occurred AND data exists
-      });
+        // Prefer usage data if available, otherwise use projection data
+        const dataSource = usageItem || projectionItem;
+        
+        // Always include the week, but use null for projection data if no data source exists (bye week)
+        const hasOccurred = hasNFLWeekOccurred(season, week);
+        const actualValue = hasOccurred ? actualDataMap.get(week) : undefined;
+        
+        projectionData.push({
+          week: week,
+          proj: dataSource ? ((dataSource as any).proj || 0) : null, // null creates gap in chart for bye weeks
+          low: dataSource ? ((dataSource as any).low || 0) : null,
+          high: dataSource ? ((dataSource as any).high || 0) : null,
+          actual: actualValue, // Only add actual if the week has occurred AND data exists
+        });
     }
     
     return projectionData;
@@ -278,7 +287,7 @@ export default function PlayerDetailPage() {
               <tbody className="bg-white divide-y divide-gray-200">
                 {isDefense ? (
                   // Defense stats rows
-                  defenseProjectionData?.items?.map((item) => {
+                  defenseProjectionData?.items?.map((item: any) => {
                     const components = item.components || {};
                     return (
                       <tr key={item.week} className="hover:bg-gray-50">

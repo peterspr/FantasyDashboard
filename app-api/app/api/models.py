@@ -211,3 +211,78 @@ class ScoringPreviewRequest(BaseModel):
             }
         }
     )
+
+class ScoringPresetsResponse(BaseModel):
+    presets: Dict[str, Dict[str, float]]
+
+# Bulk endpoint models
+class PlayerSeasonProjectionsList(BaseModel):
+    player_id: str
+    season: int
+    scoring: str
+    week_start: int
+    week_end: int
+    items: List[ProjectionItem]
+    total: int
+    
+    model_config = ConfigDict(
+        json_schema_extra={
+            "example": {
+                "player_id": "00-0030506",
+                "season": 2024,
+                "scoring": "ppr",
+                "week_start": 1,
+                "week_end": 18,
+                "items": [
+                    {
+                        "player_id": "00-0030506",
+                        "name": "Justin Jefferson",
+                        "team": "MIN",
+                        "position": "WR",
+                        "scoring": "ppr",
+                        "proj": 18.5,
+                        "low": 12.3,
+                        "high": 24.7,
+                        "components": {},
+                        "season": 2024,
+                        "week": 1
+                    }
+                ],
+                "total": 18
+            }
+        }
+    )
+
+class PlayerSeasonActualPointsList(BaseModel):
+    player_id: str
+    season: int
+    scoring: str
+    week_start: int
+    week_end: int
+    items: List[ActualPointsItem]
+    total: int
+    
+    model_config = ConfigDict(
+        json_schema_extra={
+            "example": {
+                "player_id": "00-0030506",
+                "season": 2024,
+                "scoring": "ppr",
+                "week_start": 1,
+                "week_end": 18,
+                "items": [
+                    {
+                        "player_id": "00-0030506",
+                        "name": "Justin Jefferson",
+                        "team": "MIN",
+                        "position": "WR",
+                        "scoring": "ppr",
+                        "actual_points": 22.4,
+                        "season": 2024,
+                        "week": 1
+                    }
+                ],
+                "total": 10
+            }
+        }
+    )
