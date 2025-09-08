@@ -42,7 +42,7 @@ export function usePlayerActualPoints(
           const playerData = result.items.find(
             (item: ActualPointsItem) => item.player_id === playerId
           );
-          if (playerData) {
+          if (playerData && playerData.actual_points !== null && playerData.actual_points !== undefined) {
             actualDataMap.set(week, playerData.actual_points);
           }
         }

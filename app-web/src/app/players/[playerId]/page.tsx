@@ -2,18 +2,25 @@
 
 import React, { useState } from 'react';
 import { useParams } from 'next/navigation';
-import { usePlayerUsage, usePlayers, useWeeklyProjections } from '@/lib/queries';
+import { useQuery } from '@tanstack/react-query';
+import { usePlayerUsage, usePlayers } from '@/lib/queries';
+import { apiClient } from '@/lib/api-client';
 import { PlayersList } from '@/lib/api-types';
 import { UsageChart } from '@/components/UsageChart';
 import { ProjectionChart } from '@/components/ProjectionChart';
 import { PlayerDetailSkeleton } from '@/components/LoadingSkeleton';
 import { usePlayerActualPoints } from '@/lib/use-player-actual-points';
+import { getCurrentNFLWeek, hasNFLWeekOccurred } from '@/lib/nfl-utils';
 
 export default function PlayerDetailPage() {
   const params = useParams();
   const playerId = params.playerId as string;
   
   const [season, setSeason] = useState(2024);
+  
+  // Get current NFL week for the selected season
+  const currentNFLWeek = getCurrentNFLWeek();
+  const currentWeekForSeason = season === currentNFLWeek.season ? currentNFLWeek.week : undefined;
   
   // Check if this is a defense player by ID pattern
   const isDefensePlayer = playerId.endsWith('_DST');
@@ -22,7 +29,7 @@ export default function PlayerDetailPage() {
     season,
     playerId,
     {},
-    !isDefensePlayer // Only fetch usage data for non-defense players
+    !isDefensePlayer && season <= 2024 // Only fetch usage data for non-defense players and seasons with usage data
   );
 
   // Get player info from players list (simplified - in real app might have dedicated endpoint)
@@ -32,21 +39,40 @@ export default function PlayerDetailPage() {
       : playerId.includes('-') ? undefined : playerId 
   });
 
-  // Fallback: If no usage data, try to get player info from projections by searching for display name
-  const { data: fallbackProjectionData, isLoading: projectionLoading } = useWeeklyProjections(
-    season,
-    1, // Get week 1 projections as fallback for player info
-    { 
-      search: isDefensePlayer 
-        ? `${playerId.replace('_DST', '')} Defense` // For DST, search by team name + Defense
-        : playerId, 
-      limit: 1 
+  // Get all weekly projections for the entire season by fetching multiple weeks
+  // Create a custom hook that fetches all weeks for this player
+  const { data: allProjectionsData, isLoading: allProjectionsLoading } = useQuery({
+    queryKey: ['player-all-projections', season, playerId],
+    queryFn: async () => {
+      // Fetch projections for all 18 weeks in parallel
+      const promises = Array.from({ length: 18 }, (_, i) => i + 1).map(week =>
+        apiClient.getWeeklyProjections(season, week, {
+          search: isDefensePlayer 
+            ? `${playerId.replace('_DST', '')} Defense`
+            : playerId,
+          limit: 10 // Small limit since we're searching for a specific player
+        }).catch(() => ({ items: [] })) // Handle errors gracefully
+      );
+      
+      const results = await Promise.all(promises);
+      
+      // Combine all results into a single list
+      const allItems = results.flatMap((result, index) => {
+        const week = index + 1;
+        // Find the player in this week's results
+        const playerData = result.items?.find(item => item.player_id === playerId);
+        return playerData ? [{ ...playerData, week }] : [];
+      });
+      
+      return { items: allItems };
     },
-  );
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    enabled: !!playerId && season > 0,
+  });
   
   const player = (playersData as PlayersList)?.items?.find((p) => p.player_id === playerId) || 
     usageData?.items?.[0] ||
-    fallbackProjectionData?.items?.[0]; // Use first (and only) result from player_id search
+    allProjectionsData?.items?.[0]; // Use first result from player_id search
 
   // Use the dynamic hook to fetch actual points for all occurred weeks
   const { actualDataMap } = usePlayerActualPoints(playerId, season, 'ppr');
@@ -54,18 +80,14 @@ export default function PlayerDetailPage() {
   // Check if this is a defense player
   const isDefense = player?.position === 'DST';
   
-  // For defenses, get projection data to show defense-specific stats
-  const { data: defenseProjectionData } = useWeeklyProjections(
-    season,
-    1, // Start with week 1
-    { search: playerId, limit: 100 } // Search by exact player_id, higher limit to get all matching records
-  );
+  // For defenses, use the already fetched projection data
+  const defenseProjectionData = isDefense ? allProjectionsData : null;
 
-  if ((!isDefensePlayer && usageLoading && !usageData) || (projectionLoading && !fallbackProjectionData)) {
+  if ((!isDefensePlayer && usageLoading && !usageData) || (allProjectionsLoading && !allProjectionsData)) {
     return <PlayerDetailSkeleton />;
   }
 
-  if (!player && (!isDefensePlayer ? !usageLoading : true) && !projectionLoading) {
+  if (!player && (!isDefensePlayer ? !usageLoading : true) && !allProjectionsLoading) {
     return (
       <div className="container mx-auto px-4 py-8">
         <div className="text-center py-12">
@@ -78,21 +100,45 @@ export default function PlayerDetailPage() {
     );
   }
 
-  // Combine projection data with actual data
-  // If we have usage data, use it (2024 data), otherwise use projection fallback data (2025)
-  const projectionData = usageData?.items.map(item => ({
-    week: item.week,
-    proj: item.proj || 0,
-    low: item.low || 0,
-    high: item.high || 0,
-    actual: actualDataMap.get(item.week), // Add actual data if available
-  })) || (fallbackProjectionData?.items || []).map(item => ({
-    week: item.week,
-    proj: item.proj || 0,
-    low: item.low || 0,
-    high: item.high || 0,
-    actual: actualDataMap.get(item.week),
-  }));
+  // Combine projection data with actual data for all 18 weeks
+  // Create complete projection data for all weeks (1-18)
+  const createCompleteProjectionData = () => {
+    // If we have usage data, prioritize it for weeks that have data
+    const usageMap = new Map((usageData?.items || []).map(item => [item.week, item]));
+    
+    // Create map from all projections data 
+    const projectionMap = new Map((allProjectionsData?.items || []).map(item => [item.week, item]));
+    
+    const projectionData = [];
+    
+    // Create data for all 18 weeks
+    for (let week = 1; week <= 18; week++) {
+      const usageItem = usageMap.get(week);
+      const projectionItem = projectionMap.get(week);
+      
+      // Prefer usage data if available, otherwise use projection data
+      const dataSource = usageItem || projectionItem;
+      
+      if (dataSource) {
+        // Only include actual data if the week has actually occurred
+        const hasOccurred = hasNFLWeekOccurred(season, week);
+        const actualValue = hasOccurred ? actualDataMap.get(week) : undefined;
+        
+        projectionData.push({
+          week: week,
+          proj: dataSource.proj || 0,
+          low: dataSource.low || 0,
+          high: dataSource.high || 0,
+          actual: actualValue, // Only add actual if the week has occurred AND data exists
+        });
+        
+      }
+    }
+    
+    return projectionData;
+  };
+  
+  const projectionData = createCompleteProjectionData();
 
   return (
     <div className="container mx-auto px-4 py-8">
@@ -138,7 +184,7 @@ export default function PlayerDetailPage() {
               data={projectionData}
               title="Weekly Projections"
               showUncertainty={true}
-              currentWeek={10}
+              currentWeek={currentWeekForSeason}
             />
           </div>
 
