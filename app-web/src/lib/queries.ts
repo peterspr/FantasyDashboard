@@ -81,13 +81,14 @@ export function useROSProjections(season: number, params: ROSParams = {}) {
 export function usePlayerUsage(
   season: number,
   playerId: string,
-  params: UsageParams = {}
+  params: UsageParams = {},
+  enabled: boolean = true
 ) {
   return useQuery({
     queryKey: queryKeys.usage(season, playerId, params),
     queryFn: () => apiClient.getPlayerUsage(season, playerId, params),
     staleTime: 5 * 60 * 1000, // 5 minutes
-    enabled: season > 0 && !!playerId,
+    enabled: enabled && season > 0 && !!playerId,
   });
 }
 

@@ -125,3 +125,4 @@ def downgrade():
     op.drop_table('teams')
     op.drop_table('refresh_tokens')
     op.drop_table('users')
+

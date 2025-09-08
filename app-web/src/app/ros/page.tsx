@@ -1,11 +1,10 @@
 'use client';
 
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo } from 'react';
 import { ColumnDef } from '@tanstack/react-table';
 import Link from 'next/link';
 import { useROSProjections } from '@/lib/queries';
 import { ROSItem, ROSList } from '@/lib/api-types';
-import { apiClient } from '@/lib/api-client';
 import { DataTable } from '@/components/DataTable';
 import { Filters } from '@/components/Filters';
 import { Pagination } from '@/components/Pagination';
@@ -85,8 +84,11 @@ export default function ROSPage() {
       id: 'weekly_avg',
       header: 'Weekly Avg',
       cell: ({ row }) => {
-        const weeksRemaining = 18 - 10; // Simplified calculation
-        const weeklyAvg = row.original.proj_total / weeksRemaining;
+        // Use actual weeks_remaining from the data or fallback calculation
+        const currentWeek = 10; // This should ideally come from current week data
+        const weeksRemaining = filters.season === 2025 ? 18 : Math.max(18 - currentWeek, 1);
+        const actualWeeks = row.original.weeks_remaining || weeksRemaining;
+        const weeklyAvg = row.original.proj_total / actualWeeks;
         return formatNumber(weeklyAvg);
       },
     },
@@ -104,7 +106,7 @@ export default function ROSPage() {
         );
       },
     },
-  ], []);
+  ], [filters.season]);
 
   const handleClearFilters = () => {
     setFilters(prev => ({
@@ -150,6 +152,7 @@ export default function ROSPage() {
               value: filters.season.toString(),
               onChange: (value) => setFilters(prev => ({ ...prev, season: parseInt(value) })),
               options: [
+                { label: '2025', value: '2025' },
                 { label: '2024', value: '2024' },
                 { label: '2023', value: '2023' },
               ],

@@ -30,6 +30,7 @@ export interface ROSItem {
   low: number;
   high: number;
   per_week_json?: Array<Record<string, any>>;
+  weeks_remaining?: number;
 }
 
 export interface UsageWeeklyItem {

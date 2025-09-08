@@ -302,18 +302,21 @@ def _validate_roster_positions(roster_positions: RosterPositions) -> None:
 
 
 async def _get_player_info(session: AsyncSession, player_id: str) -> Dict[str, Any] | None:
-    """Get player information from raw players data."""
+    """Get player information from stg_players (includes both regular players and DST)."""
     try:
         result = await session.execute(
             text("""
                 SELECT 
-                    data->>'display_name' as name,
-                    data->>'latest_team' as team,
-                    data->>'position' as position,
-                    data->>'jersey_number' as jersey_number,
-                    data->>'headshot' as headshot
-                FROM raw.players 
-                WHERE data->>'player_id' = :player_id
+                    display_name as name,
+                    CASE 
+                        WHEN position = 'DST' THEN SPLIT_PART(player_id, '_DST', 1)
+                        ELSE NULL 
+                    END as team,
+                    position,
+                    NULL as jersey_number,
+                    NULL as headshot
+                FROM dwh_staging.stg_players 
+                WHERE player_id = :player_id
                 LIMIT 1
             """),
             {"player_id": player_id}

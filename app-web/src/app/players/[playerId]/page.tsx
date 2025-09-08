@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { useParams } from 'next/navigation';
-import { usePlayerUsage, usePlayers, useWeeklyProjections, useROSProjections } from '@/lib/queries';
+import { usePlayerUsage, usePlayers, useWeeklyProjections } from '@/lib/queries';
 import { PlayersList } from '@/lib/api-types';
 import { UsageChart } from '@/components/UsageChart';
 import { ProjectionChart } from '@/components/ProjectionChart';
@@ -15,21 +15,33 @@ export default function PlayerDetailPage() {
   
   const [season, setSeason] = useState(2024);
   
+  // Check if this is a defense player by ID pattern
+  const isDefensePlayer = playerId.endsWith('_DST');
+  
   const { data: usageData, isLoading: usageLoading } = usePlayerUsage(
     season,
-    playerId
+    playerId,
+    {},
+    !isDefensePlayer // Only fetch usage data for non-defense players
   );
 
   // Get player info from players list (simplified - in real app might have dedicated endpoint)
   const { data: playersData } = usePlayers({ 
-    search: playerId.includes('-') ? undefined : playerId 
+    search: isDefensePlayer 
+      ? `${playerId.replace('_DST', '')} Defense` // For DST, search by team name + Defense
+      : playerId.includes('-') ? undefined : playerId 
   });
 
-  // Fallback: If no usage data, try to get player info from projections by searching for exact player_id
+  // Fallback: If no usage data, try to get player info from projections by searching for display name
   const { data: fallbackProjectionData, isLoading: projectionLoading } = useWeeklyProjections(
     season,
     1, // Get week 1 projections as fallback for player info
-    { search: playerId, limit: 1 }, // Search by exact player_id
+    { 
+      search: isDefensePlayer 
+        ? `${playerId.replace('_DST', '')} Defense` // For DST, search by team name + Defense
+        : playerId, 
+      limit: 1 
+    },
   );
   
   const player = (playersData as PlayersList)?.items?.find((p) => p.player_id === playerId) || 
@@ -42,19 +54,18 @@ export default function PlayerDetailPage() {
   // Check if this is a defense player
   const isDefense = player?.position === 'DST';
   
-  // For defenses, also get projection data to show defense-specific stats
+  // For defenses, get projection data to show defense-specific stats
   const { data: defenseProjectionData } = useWeeklyProjections(
     season,
-    undefined, // Get all weeks
-    { search: playerId, limit: 20 }, // Search by exact player_id, get more weeks
-    isDefense
+    1, // Start with week 1
+    { search: playerId, limit: 100 } // Search by exact player_id, higher limit to get all matching records
   );
 
-  if ((usageLoading && !usageData) || (projectionLoading && !fallbackProjectionData)) {
+  if ((!isDefensePlayer && usageLoading && !usageData) || (projectionLoading && !fallbackProjectionData)) {
     return <PlayerDetailSkeleton />;
   }
 
-  if (!player && !usageLoading && !projectionLoading) {
+  if (!player && (!isDefensePlayer ? !usageLoading : true) && !projectionLoading) {
     return (
       <div className="container mx-auto px-4 py-8">
         <div className="text-center py-12">
@@ -225,7 +236,7 @@ export default function PlayerDetailPage() {
                 {isDefense ? (
                   // Defense stats rows
                   defenseProjectionData?.items?.map((item) => {
-                    const components = item.components ? JSON.parse(item.components) : {};
+                    const components = item.components || {};
                     return (
                       <tr key={item.week} className="hover:bg-gray-50">
                         <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
