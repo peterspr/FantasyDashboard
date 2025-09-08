@@ -12,6 +12,15 @@ import { PlayerDetailSkeleton } from '@/components/LoadingSkeleton';
 import { usePlayerActualPoints } from '@/lib/use-player-actual-points';
 import { getCurrentNFLWeek, hasNFLWeekOccurred } from '@/lib/nfl-utils';
 
+// Position-specific chart imports
+import { FantasyBreakdownChart } from '@/components/FantasyBreakdownChart';
+import { QBPassingVsRushingChart } from '@/components/charts/QBPassingVsRushingChart';
+import { QBVolumeEfficiencyChart } from '@/components/charts/QBVolumeEfficiencyChart';
+import { RBTouchDistributionChart } from '@/components/charts/RBTouchDistributionChart';
+import { WRTargetQualityChart } from '@/components/charts/WRTargetQualityChart';
+import { TERoleDefinitionChart } from '@/components/charts/TERoleDefinitionChart';
+import { DSTDefensiveImpactChart } from '@/components/charts/DSTDefensiveImpactChart';
+
 export default function PlayerDetailPage() {
   const params = useParams();
   const playerId = params.playerId as string;
@@ -88,9 +97,133 @@ export default function PlayerDetailPage() {
 
   // Check if this is a defense player
   const isDefense = player?.position === 'DST';
+  const position = player?.position || 'WR'; // Default fallback
   
   // For defenses, use the already fetched projection data
   const defenseProjectionData = isDefense ? allProjectionsData : null;
+
+  // Helper function to render position-specific chart
+  const renderPositionSpecificChart = () => {
+    const commonProps = {
+      data: allProjectionsData?.items || [],
+      usageData: usageData?.items || [],
+    };
+
+    switch (position) {
+      case 'QB':
+        return (
+          <QBPassingVsRushingChart 
+            {...commonProps}
+            actualData={actualDataMap as Map<number, any>}
+          />
+        );
+      
+      case 'RB':
+        return (
+          <RBTouchDistributionChart {...commonProps} />
+        );
+      
+      case 'WR':
+        return (
+          <WRTargetQualityChart {...commonProps} />
+        );
+      
+      case 'TE':
+        return (
+          <TERoleDefinitionChart {...commonProps} />
+        );
+      
+      case 'DST':
+        return (
+          <DSTDefensiveImpactChart {...commonProps} />
+        );
+      
+      default:
+        // Fallback for other positions
+        return (
+          <UsageChart
+            data={usageData?.items || []}
+            title="Usage Trends"
+            metrics={['snap_pct', 'target_share']}
+          />
+        );
+    }
+  };
+
+  // Helper function to render additional position-specific charts
+  const renderAdditionalCharts = () => {
+    const commonProps = {
+      data: allProjectionsData?.items || [],
+      usageData: usageData?.items || [],
+    };
+
+    const charts = [];
+
+    switch (position) {
+      case 'QB':
+        charts.push(
+          <div key="qb-volume" className="bg-white p-6 rounded-lg border border-gray-200">
+            <QBVolumeEfficiencyChart {...commonProps} />
+          </div>
+        );
+        break;
+      
+      case 'RB':
+        charts.push(
+          <div key="rb-usage" className="bg-white p-6 rounded-lg border border-gray-200">
+            <UsageChart
+              data={usageData?.items || []}
+              title="Snap Share & Efficiency"
+              metrics={['snap_pct', 'rush_share']}
+              showVolume={true}
+            />
+          </div>
+        );
+        break;
+      
+      case 'WR':
+        charts.push(
+          <div key="wr-usage" className="bg-white p-6 rounded-lg border border-gray-200">
+            <UsageChart
+              data={usageData?.items || []}
+              title="Route Running & Usage"
+              metrics={['route_pct', 'target_share']}
+              showVolume={true}
+            />
+          </div>
+        );
+        break;
+      
+      case 'TE':
+        charts.push(
+          <div key="te-usage" className="bg-white p-6 rounded-lg border border-gray-200">
+            <UsageChart
+              data={usageData?.items || []}
+              title="Target & Route Trends"
+              metrics={['route_pct', 'target_share']}
+              showVolume={true}
+            />
+          </div>
+        );
+        break;
+      
+      case 'DST':
+        charts.push(
+          <div key="dst-matchup" className="bg-white p-6 rounded-lg border border-gray-200">
+            <div>
+              <h3 className="text-lg font-semibold text-gray-900 mb-4">Matchup Analysis</h3>
+              <p className="text-gray-600 text-sm">
+                Points allowed trends and upcoming matchup difficulty analysis
+              </p>
+              {/* TODO: Implement DST matchup analysis chart */}
+            </div>
+          </div>
+        );
+        break;
+    }
+
+    return charts;
+  };
 
   if ((!isDefensePlayer && usageLoading && !usageData) || (allProjectionsLoading && !allProjectionsData)) {
     return <PlayerDetailSkeleton />;
@@ -182,6 +315,16 @@ export default function PlayerDetailPage() {
       </div>
 
       <div className="space-y-8">
+        {/* Fantasy Points Breakdown Chart - Shown for All Positions */}
+        <div className="bg-white p-6 rounded-lg border border-gray-200">
+          <FantasyBreakdownChart
+            data={allProjectionsData?.items || []}
+            title="Fantasy Points Breakdown"
+            scoring={season === 2024 ? 'ppr' : 'ppr'} // Could be made dynamic
+            position={position}
+          />
+        </div>
+
         {/* Charts Grid */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           {/* Weekly Projections Chart */}
@@ -194,38 +337,16 @@ export default function PlayerDetailPage() {
             />
           </div>
 
-          {/* Usage/Performance Trends Chart */}
+          {/* Position-specific primary chart */}
           <div className="bg-white p-6 rounded-lg border border-gray-200">
-            {isDefense ? (
-              // Defense-specific chart showing defensive performance metrics
-              <div>
-                <h3 className="text-lg font-semibold text-gray-900 mb-4">Defense Performance</h3>
-                <p className="text-gray-600 text-sm">
-                  Defense performance metrics would show sacks, interceptions, points allowed trends
-                </p>
-                {/* TODO: Implement defense-specific chart component */}
-              </div>
-            ) : (
-              <UsageChart
-                data={usageData?.items || []}
-                title="Usage Trends"
-                metrics={['snap_pct', 'target_share']}
-              />
-            )}
+            {renderPositionSpecificChart()}
           </div>
         </div>
 
-        {/* Detailed Usage/Performance Chart */}
-        {!isDefense && (
-          <div className="bg-white p-6 rounded-lg border border-gray-200">
-            <UsageChart
-              data={usageData?.items || []}
-              title="Usage & Volume Trends"
-              metrics={['snap_pct', 'route_pct', 'target_share']}
-              showVolume={true}
-            />
-          </div>
-        )}
+        {/* Additional Position-Specific Charts */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+          {renderAdditionalCharts()}
+        </div>
 
         {/* Weekly Stats Table */}
         <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
