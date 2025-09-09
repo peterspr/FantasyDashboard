@@ -1,21 +1,14 @@
-'use client';
+'use client'
 
-import React from 'react';
-import { cn } from '@/lib/utils';
+import React from 'react'
+import { cn } from '@/lib/utils'
 
 interface SkeletonProps {
-  className?: string;
+  className?: string
 }
 
 export function Skeleton({ className }: SkeletonProps) {
-  return (
-    <div
-      className={cn(
-        "animate-pulse rounded-md bg-gray-200",
-        className
-      )}
-    />
-  );
+  return <div className={cn('animate-pulse rounded-md bg-gray-200', className)} />
 }
 
 export function TableSkeleton({ rows = 5 }: { rows?: number }) {
@@ -30,7 +23,7 @@ export function TableSkeleton({ rows = 5 }: { rows?: number }) {
         <Skeleton className="h-4 w-18" />
         <Skeleton className="h-4 w-16" />
       </div>
-      
+
       {/* Table rows */}
       {Array.from({ length: rows }).map((_, i) => (
         <div key={i} className="flex space-x-4">
@@ -43,7 +36,7 @@ export function TableSkeleton({ rows = 5 }: { rows?: number }) {
         </div>
       ))}
     </div>
-  );
+  )
 }
 
 export function ChartSkeleton() {
@@ -62,7 +55,7 @@ export function ChartSkeleton() {
         </div>
       </div>
     </div>
-  );
+  )
 }
 
 export function CardSkeleton() {
@@ -75,7 +68,7 @@ export function CardSkeleton() {
         <Skeleton className="h-4 w-1/2" />
       </div>
     </div>
-  );
+  )
 }
 
 export function PlayerDetailSkeleton() {
@@ -102,5 +95,5 @@ export function PlayerDetailSkeleton() {
         <TableSkeleton rows={10} />
       </div>
     </div>
-  );
+  )
 }

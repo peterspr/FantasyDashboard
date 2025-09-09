@@ -8,6 +8,7 @@ from app.core.cache import cache
 
 router = APIRouter(prefix="/v1/ros", tags=["Rest of Season"])
 
+
 @router.get("/{season}", response_model=ROSList)
 async def get_ros_projections(
     season: int,
@@ -20,25 +21,21 @@ async def get_ros_projections(
     sort_desc: bool = Query(True, description="Sort descending"),
     limit: int = Query(settings.DEFAULT_PAGE_SIZE, le=settings.MAX_PAGE_SIZE),
     offset: int = Query(0, ge=0),
-    _: bool = Depends(RateLimiter(times=60, seconds=60))
+    _: bool = Depends(RateLimiter(times=60, seconds=60)),
 ):
     """Get rest of season projections for all players"""
     if season < 2020 or season > 2030:
         raise HTTPException(status_code=400, detail="Season must be between 2020 and 2030")
-    
+
     if scoring not in ["ppr", "half_ppr", "standard"]:
         raise HTTPException(status_code=400, detail="Scoring must be ppr, half_ppr, or standard")
-    
+
     # Translate API scoring values to database values
-    db_scoring = {
-        "ppr": "ppr",
-        "half_ppr": "half", 
-        "standard": "std"
-    }[scoring]
-    
+    db_scoring = {"ppr": "ppr", "half_ppr": "half", "standard": "std"}[scoring]
+
     if sort_by not in ["proj_total", "low", "high", "name"]:
         raise HTTPException(status_code=400, detail="Invalid sort_by field")
-    
+
     params = {
         "scoring": db_scoring,
         "search": search,
@@ -47,9 +44,9 @@ async def get_ros_projections(
         "sort_by": sort_by,
         "sort_desc": sort_desc,
         "limit": limit,
-        "offset": offset
+        "offset": offset,
     }
-    
+
     cache_key = f"/v1/ros/{season}"
     cached = await cache.get(cache_key, params, settings.PROJECTION_PROVIDER)
     if cached:
@@ -61,7 +58,7 @@ async def get_ros_projections(
         response.headers["Cache-Control"] = "public, max-age=300, s-maxage=1800"
         response.headers["X-Total-Count"] = str(cached["total"])
         return cached
-    
+
     provider = get_provider(settings.PROJECTION_PROVIDER)
     result = await provider.ros(
         season=season,
@@ -72,17 +69,17 @@ async def get_ros_projections(
         sort_by=sort_by,
         sort_desc=sort_desc,
         limit=limit,
-        offset=offset
+        offset=offset,
     )
-    
+
     # Convert back to API scoring value for response
     result["scoring"] = scoring
     for item in result.get("items", []):
         item["scoring"] = scoring
-    
+
     await cache.set(cache_key, params, settings.PROJECTION_PROVIDER, result)
     response.headers["ETag"] = f'"{hash(str(result))}"'
     response.headers["Cache-Control"] = "public, max-age=300, s-maxage=1800"
     response.headers["X-Total-Count"] = str(result["total"])
-    
+
     return result

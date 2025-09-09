@@ -45,7 +45,7 @@ with_rolling_averages AS (
   SELECT
     bu.*,
     
-    -- 4-week rolling averages for key usage metrics
+    -- 4-week rolling averages for key usage metrics (using fixed rolling_avg macro)
     {{ rolling_avg('target_share', 'season, week', 'player_id, team', 4) }} AS target_share_4w,
     {{ rolling_avg('rush_share', 'season, week', 'player_id, team', 4) }} AS rush_share_4w,
     {{ rolling_avg('route_pct', 'season, week', 'player_id, team', 4) }} AS route_pct_4w,

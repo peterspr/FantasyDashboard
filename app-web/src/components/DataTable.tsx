@@ -1,6 +1,6 @@
-'use client';
+'use client'
 
-import React, { useMemo } from 'react';
+import React, { useMemo } from 'react'
 import {
   ColumnDef,
   flexRender,
@@ -9,22 +9,22 @@ import {
   SortingState,
   useReactTable,
   OnChangeFn,
-} from '@tanstack/react-table';
-import { useVirtualizer } from '@tanstack/react-virtual';
-import { ArrowUpDown, ArrowUp, ArrowDown, Download } from 'lucide-react';
-import { cn, generateCsvContent } from '@/lib/utils';
+} from '@tanstack/react-table'
+import { useVirtualizer } from '@tanstack/react-virtual'
+import { ArrowUpDown, ArrowUp, ArrowDown, Download } from 'lucide-react'
+import { cn, generateCsvContent } from '@/lib/utils'
 
 interface DataTableProps<TData> {
-  data: TData[];
-  columns: ColumnDef<TData>[];
-  loading?: boolean;
-  sorting?: SortingState;
-  onSortingChange?: OnChangeFn<SortingState>;
-  enableSorting?: boolean;
-  enableExport?: boolean;
-  exportFilename?: string;
-  stickyHeader?: boolean;
-  maxHeight?: number;
+  data: TData[]
+  columns: ColumnDef<TData>[]
+  loading?: boolean
+  sorting?: SortingState
+  onSortingChange?: OnChangeFn<SortingState>
+  enableSorting?: boolean
+  enableExport?: boolean
+  exportFilename?: string
+  stickyHeader?: boolean
+  maxHeight?: number
 }
 
 export function DataTable<TData>({
@@ -49,41 +49,41 @@ export function DataTable<TData>({
       sorting,
     },
     enableSorting,
-  });
+  })
 
-  const { rows } = table.getRowModel();
-  
-  const parentRef = React.useRef<HTMLDivElement>(null);
-  
+  const { rows } = table.getRowModel()
+
+  const parentRef = React.useRef<HTMLDivElement>(null)
+
   const virtualizer = useVirtualizer({
     count: rows.length,
     getScrollElement: () => parentRef.current,
     estimateSize: () => 80,
     overscan: 5,
-  });
+  })
 
   const handleExport = () => {
     if (data.length > 0) {
-      generateCsvContent(data, exportFilename);
+      generateCsvContent(data, exportFilename)
     }
-  };
+  }
 
   const getSortingIcon = (isSorted: false | 'asc' | 'desc') => {
     if (isSorted === 'asc') {
-      return <ArrowUp className="w-4 h-4" />;
+      return <ArrowUp className="w-4 h-4" />
     }
     if (isSorted === 'desc') {
-      return <ArrowDown className="w-4 h-4" />;
+      return <ArrowDown className="w-4 h-4" />
     }
-    return <ArrowUpDown className="w-4 h-4" />;
-  };
+    return <ArrowUpDown className="w-4 h-4" />
+  }
 
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600" />
       </div>
-    );
+    )
   }
 
   return (
@@ -101,13 +101,9 @@ export function DataTable<TData>({
       )}
 
       <div className="border border-gray-200 rounded-lg">
-        <div
-          ref={parentRef}
-          className="overflow-auto"
-          style={{ height: `${maxHeight}px` }}
-        >
+        <div ref={parentRef} className="overflow-auto" style={{ height: `${maxHeight}px` }}>
           <table className="w-full table-fixed">
-            <thead className={cn(stickyHeader && "sticky top-0 z-10 bg-white")}>
+            <thead className={cn(stickyHeader && 'sticky top-0 z-10 bg-white')}>
               {table.getHeaderGroups().map((headerGroup) => (
                 <tr key={headerGroup.id} className="border-b border-gray-200">
                   {headerGroup.headers.map((header) => (
@@ -118,8 +114,8 @@ export function DataTable<TData>({
                       {header.isPlaceholder ? null : (
                         <div
                           className={cn(
-                            "flex items-center space-x-2",
-                            header.column.getCanSort() && "cursor-pointer select-none"
+                            'flex items-center space-x-2',
+                            header.column.getCanSort() && 'cursor-pointer select-none'
                           )}
                           onClick={header.column.getToggleSortingHandler()}
                         >
@@ -138,9 +134,12 @@ export function DataTable<TData>({
                 </tr>
               ))}
             </thead>
-            <tbody className="bg-white divide-y divide-gray-200" style={{ position: 'relative', height: `${virtualizer.getTotalSize()}px` }}>
+            <tbody
+              className="bg-white divide-y divide-gray-200"
+              style={{ position: 'relative', height: `${virtualizer.getTotalSize()}px` }}
+            >
               {virtualizer.getVirtualItems().map((virtualItem) => {
-                const row = rows[virtualItem.index];
+                const row = rows[virtualItem.index]
                 return (
                   <tr
                     key={row.id}
@@ -166,7 +165,7 @@ export function DataTable<TData>({
                       </td>
                     ))}
                   </tr>
-                );
+                )
               })}
             </tbody>
           </table>
@@ -174,10 +173,8 @@ export function DataTable<TData>({
       </div>
 
       {data.length === 0 && !loading && (
-        <div className="text-center py-8 text-gray-500">
-          No data available
-        </div>
+        <div className="text-center py-8 text-gray-500">No data available</div>
       )}
     </div>
-  );
+  )
 }

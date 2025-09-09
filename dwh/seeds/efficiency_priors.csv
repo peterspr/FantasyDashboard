@@ -13,3 +13,5 @@ TE,rec_td_per_target,0.045,140,0.0430
 QB,pass_yds_per_att,7.0,200,4.0
 QB,pass_td_per_att,0.045,200,0.0430
 QB,int_per_att,0.025,200,0.0244
+QB,rush_yds_per_att,5.5,100,8.0
+QB,rush_td_per_rush,0.055,100,0.0520

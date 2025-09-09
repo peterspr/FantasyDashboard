@@ -68,6 +68,10 @@ services:
       DEFAULT_PAGE_SIZE: ${DEFAULT_PAGE_SIZE:-50}
       MAX_PAGE_SIZE: ${MAX_PAGE_SIZE:-200}
       PROJECTION_PROVIDER: ${PROJECTION_PROVIDER:-baseline}
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID}
+      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET}
+      JWT_SECRET_KEY: ${JWT_SECRET_KEY}
+      JWT_REFRESH_SECRET_KEY: ${JWT_REFRESH_SECRET_KEY}
     volumes:
       - ./app-api:/app
     ports:
@@ -87,6 +91,7 @@ services:
       dockerfile: Dockerfile
     environment:
       NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:8000}
+      NEXT_PUBLIC_GOOGLE_CLIENT_ID: ${NEXT_PUBLIC_GOOGLE_CLIENT_ID}
     volumes:
       - ./app-web:/app
       - /app/node_modules

@@ -2,23 +2,21 @@ from typing import Dict, List, Optional, Any
 import asyncpg
 from app.db.async_session import get_raw_connection
 
+
 class UsageRepository:
     async def get_player_usage(
-        self,
-        season: int,
-        player_id: str,
-        weeks: Optional[List[int]] = None
+        self, season: int, player_id: str, weeks: Optional[List[int]] = None
     ) -> Dict[str, Any]:
         """Get usage data for a specific player"""
         async with get_raw_connection() as conn:
             week_filter = ""
             params = [season, player_id]
-            
+
             if weeks:
-                placeholders = ",".join(f"${i+3}" for i in range(len(weeks)))
+                placeholders = ",".join(f"${i + 3}" for i in range(len(weeks)))
                 week_filter = f"AND week = ANY(ARRAY[{placeholders}])"
                 params.extend(weeks)
-            
+
             query = f"""
                 WITH dedupe_players AS (
                     SELECT DISTINCT ON (player_id) 
@@ -82,38 +80,46 @@ class UsageRepository:
                     AND u.player_id = p.player_id
                 ORDER BY u.week
             """
-            
+
             rows = await conn.fetch(query, *params)
-            
+
             items = []
             player_name = None  # We'll get this from the first row
             for row in rows:
                 if player_name is None:
                     player_name = row["name"]
-                    
-                items.append({
-                    "season": row["season"],
-                    "week": row["week"],
-                    "player_id": row["player_id"],
-                    "name": row["name"],
-                    "team": row["team"],
-                    "position": row["position"],
-                    "snap_pct": float(row["snap_pct"]) if row["snap_pct"] is not None else None,
-                    "route_pct": float(row["route_pct"]) if row["route_pct"] is not None else None,
-                    "target_share": float(row["target_share"]) if row["target_share"] is not None else None,
-                    "rush_share": float(row["rush_share"]) if row["rush_share"] is not None else None,
-                    "routes": row["routes"],
-                    "targets": row["targets"],
-                    "rush_att": row["rush_att"],
-                    "proj": float(row["proj"]) if row["proj"] is not None else None,
-                    "low": float(row["low"]) if row["low"] is not None else None,
-                    "high": float(row["high"]) if row["high"] is not None else None
-                })
-            
+
+                items.append(
+                    {
+                        "season": row["season"],
+                        "week": row["week"],
+                        "player_id": row["player_id"],
+                        "name": row["name"],
+                        "team": row["team"],
+                        "position": row["position"],
+                        "snap_pct": float(row["snap_pct"]) if row["snap_pct"] is not None else None,
+                        "route_pct": float(row["route_pct"])
+                        if row["route_pct"] is not None
+                        else None,
+                        "target_share": float(row["target_share"])
+                        if row["target_share"] is not None
+                        else None,
+                        "rush_share": float(row["rush_share"])
+                        if row["rush_share"] is not None
+                        else None,
+                        "routes": row["routes"],
+                        "targets": row["targets"],
+                        "rush_att": row["rush_att"],
+                        "proj": float(row["proj"]) if row["proj"] is not None else None,
+                        "low": float(row["low"]) if row["low"] is not None else None,
+                        "high": float(row["high"]) if row["high"] is not None else None,
+                    }
+                )
+
             return {
                 "season": season,
                 "player_id": player_id,
                 "name": player_name,
                 "items": items,
-                "total": len(items)
+                "total": len(items),
             }

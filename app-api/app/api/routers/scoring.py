@@ -9,11 +9,12 @@ from app.core.cache import cache
 router = APIRouter(prefix="/v1/scoring", tags=["Custom Scoring"])
 scoring_repo = ScoringRepository()
 
+
 @router.post("/preview", response_model=ProjectionList)
 async def preview_custom_scoring(
     request: ScoringPreviewRequest,
     response: Response,
-    _: bool = Depends(RateLimiter(times=30, seconds=60))
+    _: bool = Depends(RateLimiter(times=30, seconds=60)),
 ):
     """Preview projections with custom scoring"""
     params = {
@@ -22,40 +23,40 @@ async def preview_custom_scoring(
         "scoring": request.scoring,
         "filters": request.filters,
         "limit": request.limit,
-        "offset": request.offset
+        "offset": request.offset,
     }
-    
+
     cache_key = f"/v1/scoring/preview"
     scoring_hash = hash(str(sorted(request.scoring.items())))
     params["scoring_hash"] = scoring_hash
-    
+
     cached = await cache.get(cache_key, params, "custom")
     if cached:
         response.headers["ETag"] = f'"{hash(str(cached))}"'
         response.headers["Cache-Control"] = "public, max-age=30, s-maxage=300"
         response.headers["X-Total-Count"] = str(cached["total"])
         return cached
-    
+
     result = await scoring_repo.preview_scoring(
         season=request.season,
         week=request.week,
         scoring=request.scoring,
         filters=request.filters,
         limit=request.limit,
-        offset=request.offset
+        offset=request.offset,
     )
-    
+
     await cache.set(cache_key, params, "custom", result)
     response.headers["ETag"] = f'"{hash(str(result))}"'
     response.headers["Cache-Control"] = "public, max-age=30, s-maxage=300"
     response.headers["X-Total-Count"] = str(result["total"])
-    
+
     return result
+
 
 @router.get("/presets")
 async def get_scoring_presets(
-    response: Response,
-    _: bool = Depends(RateLimiter(times=60, seconds=60))
+    response: Response, _: bool = Depends(RateLimiter(times=60, seconds=60))
 ):
     """Get common scoring presets"""
     presets = {
@@ -68,7 +69,7 @@ async def get_scoring_presets(
             "pass_yd": 0.04,
             "pass_td": 4.0,
             "int": -2.0,
-            "fumble": -2.0
+            "fumble": -2.0,
         },
         "half_ppr": {
             "reception": 0.5,
@@ -79,7 +80,7 @@ async def get_scoring_presets(
             "pass_yd": 0.04,
             "pass_td": 4.0,
             "int": -2.0,
-            "fumble": -2.0
+            "fumble": -2.0,
         },
         "standard": {
             "reception": 0.0,
@@ -90,7 +91,7 @@ async def get_scoring_presets(
             "pass_yd": 0.04,
             "pass_td": 4.0,
             "int": -2.0,
-            "fumble": -2.0
+            "fumble": -2.0,
         },
         "super_flex": {
             "reception": 1.0,
@@ -101,9 +102,9 @@ async def get_scoring_presets(
             "pass_yd": 0.04,
             "pass_td": 6.0,
             "int": -2.0,
-            "fumble": -2.0
-        }
+            "fumble": -2.0,
+        },
     }
-    
+
     response.headers["Cache-Control"] = "public, max-age=3600, s-maxage=7200"
     return {"presets": presets}

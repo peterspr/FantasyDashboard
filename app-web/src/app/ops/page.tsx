@@ -29,11 +29,11 @@ export default function OpsPage() {
     try {
       const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
       const response = await fetch(`${apiUrl}/v1/ops/ingest/manifest/latest`)
-      
+
       if (!response.ok) {
         throw new Error(`HTTP ${response.status}`)
       }
-      
+
       const data = await response.json()
       setManifest(data)
     } catch (err) {
@@ -61,16 +61,11 @@ export default function OpsPage() {
       <div className="max-w-6xl mx-auto">
         <div className="mb-6">
           <h1 className="text-3xl font-bold text-gray-900 mb-2">Data Operations</h1>
-          <p className="text-gray-600">
-            Monitor data ingestion status and freshness
-          </p>
+          <p className="text-gray-600">Monitor data ingestion status and freshness</p>
         </div>
 
         <div className="mb-6">
-          <Link
-            href="/"
-            className="text-blue-600 hover:text-blue-800"
-          >
+          <Link href="/" className="text-blue-600 hover:text-blue-800">
             ← Back to Home
           </Link>
         </div>
@@ -101,9 +96,7 @@ export default function OpsPage() {
             <div className="mb-4">
               <Card>
                 <h2 className="text-xl font-semibold mb-2">Summary</h2>
-                <p className="text-gray-600">
-                  {manifest.total} datasets with ingested data
-                </p>
+                <p className="text-gray-600">{manifest.total} datasets with ingested data</p>
               </Card>
             </div>
 

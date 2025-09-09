@@ -1,6 +1,8 @@
 'use client'
 
 import Link from 'next/link'
+import { useEffect } from 'react'
+import { useSearchParams, useRouter } from 'next/navigation'
 import { Card } from '@/components/Card'
 import { EnvBadge } from '@/components/EnvBadge'
 import { useHealth, useMeta } from '@/lib/queries'
@@ -9,6 +11,60 @@ import { BarChart3, TrendingUp, Users, Target } from 'lucide-react'
 export default function Home() {
   const { data: health } = useHealth()
   const { data: meta } = useMeta()
+  const searchParams = useSearchParams()
+  const router = useRouter()
+
+  // Handle OAuth callback if parameters are present
+  useEffect(() => {
+    const code = searchParams.get('code')
+    const state = searchParams.get('state')
+    
+    if (code && state) {
+      // This is an OAuth callback, handle it
+      handleOAuthCallback(code, state)
+    }
+  }, [searchParams])
+
+  const handleOAuthCallback = async (code: string, state: string) => {
+    try {
+      const storedState = sessionStorage.getItem('oauth_state')
+      
+      // Verify state parameter
+      if (state !== storedState) {
+        console.error('Invalid state parameter')
+        router.push('/?error=invalid_state')
+        return
+      }
+
+      // Clear stored state
+      sessionStorage.removeItem('oauth_state')
+
+      // Exchange code for tokens
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/auth/google/callback`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+        body: JSON.stringify({
+          code,
+          redirect_uri: `${window.location.origin}/`
+        }),
+      })
+
+      if (!response.ok) {
+        throw new Error('Authentication failed')
+      }
+
+      // Clear URL parameters and reload page to show authenticated state
+      router.push('/')
+      window.location.reload()
+      
+    } catch (error) {
+      console.error('OAuth callback error:', error)
+      router.push('/?error=auth_failed')
+    }
+  }
 
   const features = [
     {
@@ -57,7 +113,7 @@ export default function Home() {
           <Card>
             <h2 className="text-xl font-semibold mb-2">API Status</h2>
             <p className="text-gray-600 mb-4">
-              Backend API health: 
+              Backend API health:
               <span className="font-mono ml-2 px-2 py-1 bg-gray-100 rounded">
                 {health?.status || 'checking...'}
               </span>
@@ -84,9 +140,7 @@ export default function Home() {
 
         {/* Feature Grid */}
         <div className="mb-12">
-          <h2 className="text-2xl font-bold text-gray-900 mb-8 text-center">
-            Explore Features
-          </h2>
+          <h2 className="text-2xl font-bold text-gray-900 mb-8 text-center">Explore Features</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
             {features.map((feature) => (
               <Link key={feature.href} href={feature.href}>

@@ -19,6 +19,8 @@ models:
           - relationships:
               to: ref('f_weekly_usage')
               field: player_id
+              config:
+                where: "player_id NOT LIKE '%_DST'"
       - name: team
         description: "Player's team abbreviation"
         tests:
@@ -28,7 +30,7 @@ models:
         tests:
           - not_null
           - accepted_values:
-              values: ['QB', 'RB', 'WR', 'TE', 'FB', 'CB', 'DE', 'FS', 'G', 'ILB', 'MLB', 'OLB', 'P', 'SS', 'T', 'DB', 'DL', 'LB', 'OL']
+              values: ['QB', 'RB', 'WR', 'TE', 'FB', 'CB', 'DE', 'FS', 'G', 'ILB', 'MLB', 'OLB', 'P', 'SS', 'T', 'DB', 'DL', 'LB', 'OL', 'DST']
       - name: scoring
         description: "Fantasy scoring system"
         tests:
@@ -81,6 +83,8 @@ models:
           - relationships:
               to: ref('stg_players')
               field: player_id
+              config:
+                where: "player_id NOT LIKE '%_DST'"
       - name: team
         description: "Player's team abbreviation"
         tests:
@@ -90,7 +94,7 @@ models:
         tests:
           - not_null
           - accepted_values:
-              values: ['QB', 'RB', 'WR', 'TE', 'FB', 'CB', 'DE', 'FS', 'G', 'ILB', 'MLB', 'OLB', 'P', 'SS', 'T', 'DB', 'DL', 'LB', 'OL']
+              values: ['QB', 'RB', 'WR', 'TE', 'FB', 'CB', 'DE', 'FS', 'G', 'ILB', 'MLB', 'OLB', 'P', 'SS', 'T', 'DB', 'DL', 'LB', 'OL', 'DST']
       - name: scoring
         description: "Fantasy scoring system"
         tests:

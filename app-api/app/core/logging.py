@@ -11,7 +11,7 @@ LOGGING_CONFIG: Dict[str, Any] = {
             "format": "%(asctime)s - %(name)s - %(levelname)s - %(message)s",
         },
         "access": {
-            "format": "%(asctime)s - %(name)s - %(levelname)s - %(client_addr)s - %(request_line)s - %(status_code)s",
+            "format": "%(asctime)s - %(name)s - %(levelname)s - %(message)s",
         },
     },
     "handlers": {

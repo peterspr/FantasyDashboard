@@ -11,7 +11,11 @@ from app.core.settings import get_settings
 
 settings = get_settings()
 from app.core.rate_limit import init_limiter, close_limiter
-from app.core.middleware import RequestIdMiddleware, http_exception_handler, general_exception_handler
+from app.core.middleware import (
+    RequestIdMiddleware,
+    http_exception_handler,
+    general_exception_handler,
+)
 
 logger = logging.getLogger("app")
 
@@ -30,7 +34,7 @@ def create_app() -> FastAPI:
     """Create FastAPI application."""
     # Configure logging
     configure_logging()
-    
+
     # Create app
     app = FastAPI(
         title="Fantasy Insights API",
@@ -38,7 +42,7 @@ def create_app() -> FastAPI:
         version=settings.env_version,
         lifespan=lifespan,
     )
-    
+
     # Add middleware
     app.add_middleware(RequestIdMiddleware)
     app.add_middleware(
@@ -48,14 +52,14 @@ def create_app() -> FastAPI:
         allow_methods=["*"],
         allow_headers=["*"],
     )
-    
+
     # Add exception handlers
     app.add_exception_handler(HTTPException, http_exception_handler)
     app.add_exception_handler(Exception, general_exception_handler)
-    
+
     # Include router
     app.include_router(router)
-    
+
     return app
 
 

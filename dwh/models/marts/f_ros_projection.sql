@@ -13,10 +13,23 @@
 WITH current_week_calc AS (
   SELECT 
     season,
-    MAX(week) AS current_week
+    COALESCE(MAX(week), 0) AS current_week
   FROM {{ ref('f_calendar_weeks') }}
   WHERE week_start_date <= '{{ var("projections.as_of_date", run_started_at) }}'::timestamp
   GROUP BY season
+  
+  UNION ALL
+  
+  -- Add seasons that have only future weeks (e.g., 2025)
+  SELECT DISTINCT
+    season,
+    0 AS current_week
+  FROM {{ ref('f_calendar_weeks') }}
+  WHERE season NOT IN (
+    SELECT season 
+    FROM {{ ref('f_calendar_weeks') }}
+    WHERE week_start_date <= '{{ var("projections.as_of_date", run_started_at) }}'::timestamp
+  )
 ),
 
 future_weeks AS (
