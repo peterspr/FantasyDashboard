@@ -1,12 +1,12 @@
-"use client";
+'use client'
 
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
-import { ArrowLeft, Plus, Minus } from 'lucide-react';
-import { useCreateTeam } from '../../../lib/team-hooks';
-import { useAuth } from '../../../lib/auth-context';
-import type { CreateTeamRequest, RosterPositions } from '../../../lib/api-types';
-import Link from 'next/link';
+import { useState, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
+import { ArrowLeft, Plus, Minus } from 'lucide-react'
+import { useCreateTeam } from '../../../lib/team-hooks'
+import { useAuth } from '../../../lib/auth-context'
+import type { CreateTeamRequest, RosterPositions } from '../../../lib/api-types'
+import Link from 'next/link'
 
 const DEFAULT_ROSTER: RosterPositions = {
   starters: {
@@ -20,77 +20,90 @@ const DEFAULT_ROSTER: RosterPositions = {
   },
   bench: 6,
   ir: 1,
-};
+}
 
 const POSITION_LABELS: Record<string, string> = {
   QB: 'Quarterback',
   RB: 'Running Back',
-  WR: 'Wide Receiver', 
+  WR: 'Wide Receiver',
   TE: 'Tight End',
   FLEX: 'Flex (RB/WR/TE)',
   SUPER_FLEX: 'Super Flex (All)',
   K: 'Kicker',
   DST: 'Defense/Special Teams',
-};
+}
 
 export default function NewTeamPage() {
-  const router = useRouter();
-  const { isAuthenticated } = useAuth();
-  const createTeamMutation = useCreateTeam();
-  
+  const router = useRouter()
+  const { isAuthenticated, isLoading } = useAuth()
+  const createTeamMutation = useCreateTeam()
+
   const [formData, setFormData] = useState<CreateTeamRequest>({
     name: '',
     league_name: '',
     scoring_system: 'ppr',
     league_size: 12,
     roster_positions: DEFAULT_ROSTER,
-  });
+  })
 
-  const [errors, setErrors] = useState<Record<string, string>>({});
+  const [errors, setErrors] = useState<Record<string, string>>({})
 
-  // Redirect if not authenticated
-  if (!isAuthenticated) {
-    router.push('/teams');
-    return null;
+  // Redirect if not authenticated (using useEffect to avoid render-time state updates)
+  useEffect(() => {
+    if (!isLoading && !isAuthenticated) {
+      router.push('/teams')
+    }
+  }, [isAuthenticated, isLoading, router])
+
+  // Show loading or return null while checking auth
+  if (isLoading || !isAuthenticated) {
+    return (
+      <div className="container mx-auto px-4 py-8 max-w-2xl">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
+          <p className="mt-2 text-gray-600">Loading...</p>
+        </div>
+      </div>
+    )
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
+    e.preventDefault()
+
     // Validate form
-    const newErrors: Record<string, string> = {};
+    const newErrors: Record<string, string> = {}
     if (!formData.name.trim()) {
-      newErrors.name = 'Team name is required';
+      newErrors.name = 'Team name is required'
     }
     if (formData.league_size < 4 || formData.league_size > 32) {
-      newErrors.league_size = 'League size must be between 4 and 32';
+      newErrors.league_size = 'League size must be between 4 and 32'
     }
-    
-    setErrors(newErrors);
+
+    setErrors(newErrors)
     if (Object.keys(newErrors).length > 0) {
-      return;
+      return
     }
 
     try {
-      const team = await createTeamMutation.mutateAsync(formData);
-      router.push(`/teams/${team.id}`);
+      const team = await createTeamMutation.mutateAsync(formData)
+      router.push(`/teams/${team.id}`)
     } catch (error) {
-      console.error('Failed to create team:', error);
-      setErrors({ submit: 'Failed to create team. Please try again.' });
+      console.error('Failed to create team:', error)
+      setErrors({ submit: 'Failed to create team. Please try again.' })
     }
-  };
+  }
 
   const updateStarterPosition = (position: string, count: number) => {
     if (count <= 0) {
       // Remove position if count is 0
-      const { [position]: removed, ...rest } = formData.roster_positions.starters;
+      const { [position]: removed, ...rest } = formData.roster_positions.starters
       setFormData({
         ...formData,
         roster_positions: {
           ...formData.roster_positions,
           starters: rest,
         },
-      });
+      })
     } else {
       setFormData({
         ...formData,
@@ -101,18 +114,18 @@ export default function NewTeamPage() {
             [position]: count,
           },
         },
-      });
+      })
     }
-  };
+  }
 
   const addPosition = (position: string) => {
-    updateStarterPosition(position, 1);
-  };
+    updateStarterPosition(position, 1)
+  }
 
   return (
     <div className="container mx-auto px-4 py-8 max-w-2xl">
       <div className="mb-6">
-        <Link 
+        <Link
           href="/teams"
           className="inline-flex items-center text-blue-600 hover:text-blue-700 mb-4"
         >
@@ -127,11 +140,9 @@ export default function NewTeamPage() {
         {/* Basic Information */}
         <div className="space-y-4">
           <h2 className="text-lg font-semibold text-gray-900">Basic Information</h2>
-          
+
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Team Name *
-            </label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Team Name *</label>
             <input
               type="text"
               value={formData.name}
@@ -145,9 +156,7 @@ export default function NewTeamPage() {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              League Name
-            </label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">League Name</label>
             <input
               type="text"
               value={formData.league_name}
@@ -159,12 +168,12 @@ export default function NewTeamPage() {
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Scoring System
-              </label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Scoring System</label>
               <select
                 value={formData.scoring_system}
-                onChange={(e) => setFormData({ ...formData, scoring_system: e.target.value as any })}
+                onChange={(e) =>
+                  setFormData({ ...formData, scoring_system: e.target.value as any })
+                }
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
               >
                 <option value="ppr">PPR (Point per Reception)</option>
@@ -174,20 +183,22 @@ export default function NewTeamPage() {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                League Size
-              </label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">League Size</label>
               <input
                 type="number"
                 min="4"
                 max="32"
                 value={formData.league_size}
-                onChange={(e) => setFormData({ ...formData, league_size: parseInt(e.target.value) || 12 })}
+                onChange={(e) =>
+                  setFormData({ ...formData, league_size: parseInt(e.target.value) || 12 })
+                }
                 className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 ${
                   errors.league_size ? 'border-red-300' : 'border-gray-300'
                 }`}
               />
-              {errors.league_size && <p className="text-red-600 text-sm mt-1">{errors.league_size}</p>}
+              {errors.league_size && (
+                <p className="text-red-600 text-sm mt-1">{errors.league_size}</p>
+              )}
             </div>
           </div>
         </div>
@@ -195,11 +206,14 @@ export default function NewTeamPage() {
         {/* Roster Configuration */}
         <div className="space-y-4">
           <h2 className="text-lg font-semibold text-gray-900">Roster Configuration</h2>
-          
+
           <div className="space-y-3">
             <h3 className="text-md font-medium text-gray-800">Starting Positions</h3>
             {Object.entries(formData.roster_positions.starters).map(([position, count]) => (
-              <div key={position} className="flex items-center justify-between py-2 px-3 bg-gray-50 rounded-md">
+              <div
+                key={position}
+                className="flex items-center justify-between py-2 px-3 bg-gray-50 rounded-md"
+              >
                 <span className="font-medium text-gray-700">
                   {POSITION_LABELS[position] || position}
                 </span>
@@ -222,7 +236,7 @@ export default function NewTeamPage() {
                 </div>
               </div>
             ))}
-            
+
             {/* Add position selector */}
             <div className="mt-3">
               <select
@@ -234,7 +248,9 @@ export default function NewTeamPage() {
                 {Object.entries(POSITION_LABELS)
                   .filter(([pos]) => !formData.roster_positions.starters[pos])
                   .map(([pos, label]) => (
-                    <option key={pos} value={pos}>{label}</option>
+                    <option key={pos} value={pos}>
+                      {label}
+                    </option>
                   ))}
               </select>
             </div>
@@ -242,41 +258,41 @@ export default function NewTeamPage() {
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Bench Slots
-              </label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Bench Slots</label>
               <input
                 type="number"
                 min="1"
                 max="20"
                 value={formData.roster_positions.bench}
-                onChange={(e) => setFormData({
-                  ...formData,
-                  roster_positions: {
-                    ...formData.roster_positions,
-                    bench: parseInt(e.target.value) || 1,
-                  },
-                })}
+                onChange={(e) =>
+                  setFormData({
+                    ...formData,
+                    roster_positions: {
+                      ...formData.roster_positions,
+                      bench: parseInt(e.target.value) || 1,
+                    },
+                  })
+                }
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                IR Slots
-              </label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">IR Slots</label>
               <input
                 type="number"
                 min="0"
                 max="5"
                 value={formData.roster_positions.ir || 0}
-                onChange={(e) => setFormData({
-                  ...formData,
-                  roster_positions: {
-                    ...formData.roster_positions,
-                    ir: parseInt(e.target.value) || 0,
-                  },
-                })}
+                onChange={(e) =>
+                  setFormData({
+                    ...formData,
+                    roster_positions: {
+                      ...formData.roster_positions,
+                      ir: parseInt(e.target.value) || 0,
+                    },
+                  })
+                }
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
             </div>
@@ -308,5 +324,5 @@ export default function NewTeamPage() {
         </div>
       </form>
     </div>
-  );
+  )
 }

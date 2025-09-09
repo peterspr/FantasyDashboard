@@ -1,6 +1,6 @@
-'use client';
+'use client'
 
-import React from 'react';
+import React from 'react'
 import {
   LineChart,
   Line,
@@ -10,30 +10,30 @@ import {
   Tooltip,
   ResponsiveContainer,
   Legend,
-} from 'recharts';
-import { formatPercentage, formatNumber } from '@/lib/utils';
+} from 'recharts'
+import { formatPercentage, formatNumber } from '@/lib/utils'
 
 interface UsageDataPoint {
-  week: number;
-  snap_pct?: number;
-  route_pct?: number;
-  target_share?: number;
-  rush_share?: number;
-  routes?: number;
-  targets?: number;
-  rush_att?: number;
+  week: number
+  snap_pct?: number
+  route_pct?: number
+  target_share?: number
+  rush_share?: number
+  routes?: number
+  targets?: number
+  rush_att?: number
 }
 
 interface UsageChartProps {
-  data: UsageDataPoint[];
-  title?: string;
-  metrics?: ('snap_pct' | 'route_pct' | 'target_share' | 'rush_share')[];
-  showVolume?: boolean;
+  data: UsageDataPoint[]
+  title?: string
+  metrics?: ('snap_pct' | 'route_pct' | 'target_share' | 'rush_share')[]
+  showVolume?: boolean
 }
 
 export function UsageChart({
   data,
-  title = "Usage Trends",
+  title = 'Usage Trends',
   metrics = ['snap_pct', 'target_share'],
   showVolume = false,
 }: UsageChartProps) {
@@ -42,7 +42,7 @@ export function UsageChart({
       <div className="flex items-center justify-center h-64 text-gray-500">
         No usage data available
       </div>
-    );
+    )
   }
 
   const metricConfig = {
@@ -50,31 +50,29 @@ export function UsageChart({
     route_pct: { color: '#06b6d4', name: 'Route %' },
     target_share: { color: '#10b981', name: 'Target Share' },
     rush_share: { color: '#f59e0b', name: 'Rush Share' },
-  };
+  }
 
   const volumeConfig = {
     routes: { color: '#8b5cf6', name: 'Routes' },
     targets: { color: '#ec4899', name: 'Targets' },
     rush_att: { color: '#ef4444', name: 'Rush Attempts' },
-  };
+  }
 
   return (
     <div className="space-y-4">
-      {title && (
-        <h3 className="text-lg font-semibold text-gray-900">{title}</h3>
-      )}
+      {title && <h3 className="text-lg font-semibold text-gray-900">{title}</h3>}
 
       <ResponsiveContainer width="100%" height={300}>
         <LineChart data={data} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
           <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-          
+
           <XAxis
             dataKey="week"
             axisLine={false}
             tickLine={false}
             tick={{ fontSize: 12, fill: '#6b7280' }}
           />
-          
+
           <YAxis
             yAxisId="percentage"
             axisLine={false}
@@ -94,7 +92,7 @@ export function UsageChart({
               tickFormatter={(value) => formatNumber(value, 0)}
             />
           )}
-          
+
           <Tooltip
             content={({ active, payload, label }) => {
               if (active && payload && payload.length) {
@@ -104,18 +102,19 @@ export function UsageChart({
                     <div className="space-y-1 mt-2">
                       {payload.map((entry, index) => (
                         <p key={index} style={{ color: entry.color }}>
-                          {entry.name}: {
-                            ['snap_pct', 'route_pct', 'target_share', 'rush_share'].includes(entry.dataKey as string)
-                              ? formatPercentage(entry.value as number)
-                              : formatNumber(entry.value as number, 0)
-                          }
+                          {entry.name}:{' '}
+                          {['snap_pct', 'route_pct', 'target_share', 'rush_share'].includes(
+                            entry.dataKey as string
+                          )
+                            ? formatPercentage(entry.value as number)
+                            : formatNumber(entry.value as number, 0)}
                         </p>
                       ))}
                     </div>
                   </div>
-                );
+                )
               }
-              return null;
+              return null
             }}
           />
 
@@ -175,5 +174,5 @@ export function UsageChart({
         </LineChart>
       </ResponsiveContainer>
     </div>
-  );
+  )
 }

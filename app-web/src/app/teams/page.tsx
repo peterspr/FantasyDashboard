@@ -1,32 +1,32 @@
-"use client";
+'use client'
 
-import { useState } from 'react';
-import { Plus, Users, Calendar, Settings, Trash2 } from 'lucide-react';
-import { useAuth } from '../../lib/auth-context';
-import { useTeams, useDeleteTeam } from '../../lib/team-hooks';
-import { LoginButton } from '../../components/auth/LoginButton';
-import Link from 'next/link';
+import { useState } from 'react'
+import { Plus, Users, Calendar, Settings, Trash2 } from 'lucide-react'
+import { useAuth } from '../../lib/auth-context'
+import { useTeams, useDeleteTeam } from '../../lib/team-hooks'
+import { LoginButton } from '../../components/auth/LoginButton'
+import Link from 'next/link'
 
 export default function TeamsPage() {
-  const { isAuthenticated, isLoading: authLoading } = useAuth();
-  const { data: teams, isLoading: teamsLoading, error } = useTeams();
-  const deleteTeamMutation = useDeleteTeam();
-  const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
+  const { isAuthenticated, isLoading: authLoading } = useAuth()
+  const { data: teams, isLoading: teamsLoading, error } = useTeams()
+  const deleteTeamMutation = useDeleteTeam()
+  const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null)
 
   const handleDeleteTeam = async (teamId: string) => {
     if (deleteConfirm === teamId) {
       try {
-        await deleteTeamMutation.mutateAsync(teamId);
-        setDeleteConfirm(null);
+        await deleteTeamMutation.mutateAsync(teamId)
+        setDeleteConfirm(null)
       } catch (error) {
-        console.error('Failed to delete team:', error);
+        console.error('Failed to delete team:', error)
       }
     } else {
-      setDeleteConfirm(teamId);
+      setDeleteConfirm(teamId)
       // Auto-cancel confirmation after 3 seconds
-      setTimeout(() => setDeleteConfirm(null), 3000);
+      setTimeout(() => setDeleteConfirm(null), 3000)
     }
-  };
+  }
 
   // Show login prompt if not authenticated
   if (!authLoading && !isAuthenticated) {
@@ -35,13 +35,11 @@ export default function TeamsPage() {
         <div className="max-w-md w-full bg-white rounded-lg shadow-md p-6 text-center">
           <Users className="w-16 h-16 text-blue-600 mx-auto mb-4" />
           <h1 className="text-2xl font-bold text-gray-900 mb-2">My Teams</h1>
-          <p className="text-gray-600 mb-6">
-            Sign in to create and manage your fantasy teams
-          </p>
+          <p className="text-gray-600 mb-6">Sign in to create and manage your fantasy teams</p>
           <LoginButton />
         </div>
       </div>
-    );
+    )
   }
 
   if (authLoading || teamsLoading) {
@@ -60,7 +58,7 @@ export default function TeamsPage() {
           </div>
         </div>
       </div>
-    );
+    )
   }
 
   if (error) {
@@ -70,7 +68,7 @@ export default function TeamsPage() {
           <p className="text-red-800">Failed to load teams: {error.message}</p>
         </div>
       </div>
-    );
+    )
   }
 
   return (
@@ -78,9 +76,7 @@ export default function TeamsPage() {
       <div className="flex justify-between items-center mb-8">
         <div>
           <h1 className="text-3xl font-bold text-gray-900">My Teams</h1>
-          <p className="text-gray-600 mt-1">
-            Manage your fantasy football teams and rosters
-          </p>
+          <p className="text-gray-600 mt-1">Manage your fantasy football teams and rosters</p>
         </div>
         <Link
           href="/teams/new"
@@ -95,9 +91,7 @@ export default function TeamsPage() {
         <div className="text-center py-12">
           <Users className="w-16 h-16 text-gray-400 mx-auto mb-4" />
           <h2 className="text-xl font-semibold text-gray-900 mb-2">No teams yet</h2>
-          <p className="text-gray-600 mb-6">
-            Get started by creating your first fantasy team
-          </p>
+          <p className="text-gray-600 mb-6">Get started by creating your first fantasy team</p>
           <Link
             href="/teams/new"
             className="inline-flex items-center space-x-2 bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-md transition-colors"
@@ -113,9 +107,7 @@ export default function TeamsPage() {
               <div className="p-6">
                 <div className="flex justify-between items-start mb-4">
                   <div>
-                    <h3 className="text-xl font-semibold text-gray-900 mb-1">
-                      {team.name}
-                    </h3>
+                    <h3 className="text-xl font-semibold text-gray-900 mb-1">{team.name}</h3>
                     {team.league_name && (
                       <p className="text-sm text-gray-600">{team.league_name}</p>
                     )}
@@ -183,5 +175,5 @@ export default function TeamsPage() {
         </div>
       )}
     </div>
-  );
+  )
 }

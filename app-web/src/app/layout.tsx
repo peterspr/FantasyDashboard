@@ -10,11 +10,7 @@ export const metadata: Metadata = {
   description: 'Fantasy Football Insights and Projections',
 }
 
-export default function RootLayout({
-  children,
-}: {
-  children: React.ReactNode
-}) {
+export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en">
       <body className="min-h-screen bg-gray-50">
@@ -22,9 +18,7 @@ export default function RootLayout({
         <QueryProvider>
           <AuthProvider>
             <Navigation />
-            <main>
-              {children}
-            </main>
+            <main>{children}</main>
           </AuthProvider>
         </QueryProvider>
       </body>

@@ -1,6 +1,6 @@
-'use client';
+'use client'
 
-import React from 'react';
+import React from 'react'
 import {
   ComposedChart,
   Bar,
@@ -11,50 +11,50 @@ import {
   Tooltip,
   ResponsiveContainer,
   Legend,
-} from 'recharts';
-import { formatNumber, formatPercentage } from '@/lib/utils';
+} from 'recharts'
+import { formatNumber, formatPercentage } from '@/lib/utils'
 
 interface QBVolumeDataPoint {
-  week: number;
-  pass_att_pred?: number;
-  yards_per_attempt?: number;
-  completion_rate?: number;
-  int_rate?: number;
-  pass_td_rate?: number;
+  week: number
+  pass_att_pred?: number
+  yards_per_attempt?: number
+  completion_rate?: number
+  int_rate?: number
+  pass_td_rate?: number
 }
 
 interface QBVolumeEfficiencyChartProps {
-  data: any[];
-  title?: string;
+  data: any[]
+  title?: string
 }
 
 export function QBVolumeEfficiencyChart({
   data,
-  title = "Volume & Efficiency Metrics",
+  title = 'Volume & Efficiency Metrics',
 }: QBVolumeEfficiencyChartProps) {
   if (!data || data.length === 0) {
     return (
       <div className="flex items-center justify-center h-64 text-gray-500">
         No QB data available
       </div>
-    );
+    )
   }
 
   // Transform data for the chart
-  const chartData: QBVolumeDataPoint[] = data.map(item => {
-    const components = item.components || {};
-    const week = item.week;
+  const chartData: QBVolumeDataPoint[] = data.map((item) => {
+    const components = item.components || {}
+    const week = item.week
 
-    const passAtt = components.pass_att_pred || 0;
-    const passYds = components.pass_yds_pred || 0;
-    const passTds = components.pass_td_pred || 0;
-    const ints = components.int_pred || 0;
-    const completions = components.completions_pred || (passAtt * 0.65); // Estimate if not available
+    const passAtt = components.pass_att_pred || 0
+    const passYds = components.pass_yds_pred || 0
+    const passTds = components.pass_td_pred || 0
+    const ints = components.int_pred || 0
+    const completions = components.completions_pred || passAtt * 0.65 // Estimate if not available
 
-    const yardsPerAttempt = passAtt > 0 ? passYds / passAtt : 0;
-    const completionRate = passAtt > 0 ? completions / passAtt : 0;
-    const intRate = passAtt > 0 ? ints / passAtt : 0;
-    const passTdRate = passAtt > 0 ? passTds / passAtt : 0;
+    const yardsPerAttempt = passAtt > 0 ? passYds / passAtt : 0
+    const completionRate = passAtt > 0 ? completions / passAtt : 0
+    const intRate = passAtt > 0 ? ints / passAtt : 0
+    const passTdRate = passAtt > 0 ? passTds / passAtt : 0
 
     return {
       week,
@@ -63,29 +63,24 @@ export function QBVolumeEfficiencyChart({
       completion_rate: completionRate,
       int_rate: intRate,
       pass_td_rate: passTdRate,
-    };
-  });
+    }
+  })
 
   return (
     <div className="space-y-4">
-      {title && (
-        <h3 className="text-lg font-semibold text-gray-900">{title}</h3>
-      )}
-      
+      {title && <h3 className="text-lg font-semibold text-gray-900">{title}</h3>}
+
       <ResponsiveContainer width="100%" height={350}>
-        <ComposedChart
-          data={chartData}
-          margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
-        >
+        <ComposedChart data={chartData} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
           <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-          
+
           <XAxis
             dataKey="week"
             axisLine={false}
             tickLine={false}
             tick={{ fontSize: 12, fill: '#6b7280' }}
           />
-          
+
           <YAxis
             yAxisId="volume"
             axisLine={false}
@@ -100,14 +95,16 @@ export function QBVolumeEfficiencyChart({
             axisLine={false}
             tickLine={false}
             tick={{ fontSize: 12, fill: '#6b7280' }}
-            tickFormatter={(value) => value > 1 ? formatNumber(value, 1) : formatPercentage(value)}
+            tickFormatter={(value) =>
+              value > 1 ? formatNumber(value, 1) : formatPercentage(value)
+            }
           />
-          
+
           <Tooltip
             content={({ active, payload, label }) => {
               if (active && payload && payload.length) {
-                const data = chartData.find(d => d.week === label);
-                if (!data) return null;
+                const data = chartData.find((d) => d.week === label)
+                if (!data) return null
 
                 return (
                   <div className="bg-white p-3 border border-gray-200 rounded-lg shadow-lg">
@@ -136,9 +133,9 @@ export function QBVolumeEfficiencyChart({
                       </div>
                     </div>
                   </div>
-                );
+                )
               }
-              return null;
+              return null
             }}
           />
 
@@ -209,5 +206,5 @@ export function QBVolumeEfficiencyChart({
         <p>• High volume + high efficiency = elite QB performance</p>
       </div>
     </div>
-  );
+  )
 }

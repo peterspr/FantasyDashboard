@@ -1,47 +1,47 @@
-"use client";
+'use client'
 
-import Link from 'next/link';
-import { usePathname } from 'next/navigation';
-import { Home, Target, TrendingUp, Users, BarChart3 } from 'lucide-react';
-import { SimpleLoginButton } from './auth/SimpleLoginButton';
-import { useAuth } from '../lib/auth-context';
+import Link from 'next/link'
+import { usePathname } from 'next/navigation'
+import { Home, Target, TrendingUp, Users, BarChart3 } from 'lucide-react'
+import { LoginButton } from './auth/LoginButton'
+import { useAuth } from '../lib/auth-context'
 
 const navigationItems = [
-  { 
-    label: 'Home', 
-    href: '/', 
+  {
+    label: 'Home',
+    href: '/',
     icon: Home,
-    public: true
+    public: true,
   },
-  { 
-    label: 'Projections', 
-    href: '/projections', 
+  {
+    label: 'Projections',
+    href: '/projections',
     icon: Target,
-    public: true
+    public: true,
   },
-  { 
-    label: 'ROS', 
-    href: '/ros', 
+  {
+    label: 'ROS',
+    href: '/ros',
     icon: TrendingUp,
-    public: true
+    public: true,
   },
-  { 
-    label: 'My Teams', 
-    href: '/teams', 
+  {
+    label: 'My Teams',
+    href: '/teams',
     icon: Users,
-    authRequired: true
+    authRequired: true,
   },
-  { 
-    label: 'Operations', 
-    href: '/ops', 
+  {
+    label: 'Operations',
+    href: '/ops',
     icon: BarChart3,
-    public: true
+    public: true,
   },
-];
+]
 
 export function Navigation() {
-  const pathname = usePathname();
-  const { isAuthenticated } = useAuth();
+  const pathname = usePathname()
+  const { isAuthenticated } = useAuth()
 
   return (
     <nav className="bg-white shadow-sm border-b">
@@ -58,12 +58,12 @@ export function Navigation() {
           {/* Navigation Links */}
           <div className="hidden md:flex items-center space-x-8">
             {navigationItems
-              .filter(item => item.public || (item.authRequired && isAuthenticated))
+              .filter((item) => item.public || (item.authRequired && isAuthenticated))
               .map((item) => {
-                const isActive = pathname === item.href || 
-                  (item.href !== '/' && pathname.startsWith(item.href));
-                const Icon = item.icon;
-                
+                const isActive =
+                  pathname === item.href || (item.href !== '/' && pathname.startsWith(item.href))
+                const Icon = item.icon
+
                 return (
                   <Link
                     key={item.href}
@@ -77,13 +77,13 @@ export function Navigation() {
                     <Icon className="w-4 h-4" />
                     <span>{item.label}</span>
                   </Link>
-                );
+                )
               })}
           </div>
 
           {/* Auth Section */}
           <div className="flex items-center">
-            <SimpleLoginButton />
+            <LoginButton />
           </div>
         </div>
 
@@ -91,12 +91,12 @@ export function Navigation() {
         <div className="md:hidden border-t py-3">
           <div className="flex flex-wrap gap-2">
             {navigationItems
-              .filter(item => item.public || (item.authRequired && isAuthenticated))
+              .filter((item) => item.public || (item.authRequired && isAuthenticated))
               .map((item) => {
-                const isActive = pathname === item.href || 
-                  (item.href !== '/' && pathname.startsWith(item.href));
-                const Icon = item.icon;
-                
+                const isActive =
+                  pathname === item.href || (item.href !== '/' && pathname.startsWith(item.href))
+                const Icon = item.icon
+
                 return (
                   <Link
                     key={item.href}
@@ -110,11 +110,11 @@ export function Navigation() {
                     <Icon className="w-4 h-4" />
                     <span>{item.label}</span>
                   </Link>
-                );
+                )
               })}
           </div>
         </div>
       </div>
     </nav>
-  );
+  )
 }

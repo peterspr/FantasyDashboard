@@ -1,19 +1,19 @@
-'use client';
+'use client'
 
-import React from 'react';
-import { ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import React from 'react'
+import { ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from 'lucide-react'
+import { cn } from '@/lib/utils'
 
 interface PaginationProps {
-  currentPage: number;
-  totalPages: number;
-  pageSize: number;
-  totalItems: number;
-  onPageChange: (page: number) => void;
-  onPageSizeChange?: (pageSize: number) => void;
-  pageSizeOptions?: number[];
-  showPageSizeSelector?: boolean;
-  className?: string;
+  currentPage: number
+  totalPages: number
+  pageSize: number
+  totalItems: number
+  onPageChange: (page: number) => void
+  onPageSizeChange?: (pageSize: number) => void
+  pageSizeOptions?: number[]
+  showPageSizeSelector?: boolean
+  className?: string
 }
 
 export function Pagination({
@@ -27,44 +27,44 @@ export function Pagination({
   showPageSizeSelector = true,
   className,
 }: PaginationProps) {
-  const startItem = (currentPage - 1) * pageSize + 1;
-  const endItem = Math.min(currentPage * pageSize, totalItems);
+  const startItem = (currentPage - 1) * pageSize + 1
+  const endItem = Math.min(currentPage * pageSize, totalItems)
 
   const getVisiblePages = () => {
-    const delta = 2;
-    const range = [];
-    const rangeWithDots = [];
+    const delta = 2
+    const range = []
+    const rangeWithDots = []
 
     for (
       let i = Math.max(2, currentPage - delta);
       i <= Math.min(totalPages - 1, currentPage + delta);
       i++
     ) {
-      range.push(i);
+      range.push(i)
     }
 
     if (currentPage - delta > 2) {
-      rangeWithDots.push(1, '...');
+      rangeWithDots.push(1, '...')
     } else {
-      rangeWithDots.push(1);
+      rangeWithDots.push(1)
     }
 
-    rangeWithDots.push(...range);
+    rangeWithDots.push(...range)
 
     if (currentPage + delta < totalPages - 1) {
-      rangeWithDots.push('...', totalPages);
+      rangeWithDots.push('...', totalPages)
     } else if (totalPages > 1) {
-      rangeWithDots.push(totalPages);
+      rangeWithDots.push(totalPages)
     }
 
-    return rangeWithDots;
-  };
+    return rangeWithDots
+  }
 
-  const visiblePages = getVisiblePages();
+  const visiblePages = getVisiblePages()
 
   if (totalPages <= 1) {
     return (
-      <div className={cn("flex items-center justify-between", className)}>
+      <div className={cn('flex items-center justify-between', className)}>
         <div className="text-sm text-gray-700">
           Showing {totalItems} {totalItems === 1 ? 'result' : 'results'}
         </div>
@@ -85,11 +85,11 @@ export function Pagination({
           </div>
         )}
       </div>
-    );
+    )
   }
 
   return (
-    <div className={cn("flex items-center justify-between", className)}>
+    <div className={cn('flex items-center justify-between', className)}>
       <div className="text-sm text-gray-700">
         Showing {startItem} to {endItem} of {totalItems} results
       </div>
@@ -140,12 +140,12 @@ export function Pagination({
               onClick={() => typeof page === 'number' && onPageChange(page)}
               disabled={page === '...'}
               className={cn(
-                "px-3 py-1 text-sm font-medium rounded-md",
+                'px-3 py-1 text-sm font-medium rounded-md',
                 page === currentPage
-                  ? "bg-blue-600 text-white"
+                  ? 'bg-blue-600 text-white'
                   : page === '...'
-                  ? "text-gray-400 cursor-default"
-                  : "text-gray-700 hover:bg-gray-100"
+                    ? 'text-gray-400 cursor-default'
+                    : 'text-gray-700 hover:bg-gray-100'
               )}
             >
               {page}
@@ -174,5 +174,5 @@ export function Pagination({
         </nav>
       </div>
     </div>
-  );
+  )
 }

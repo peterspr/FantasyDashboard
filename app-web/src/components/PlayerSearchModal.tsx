@@ -1,17 +1,17 @@
-"use client";
+'use client'
 
-import React, { useState, useEffect, useMemo } from 'react';
-import { X, Search, User, Plus } from 'lucide-react';
-import { apiClient } from '../lib/api-client';
-import type { PlayerOut, PlayersParams, RosterSlot } from '../lib/api-types';
+import React, { useState, useEffect, useMemo } from 'react'
+import { X, Search, User, Plus } from 'lucide-react'
+import { apiClient } from '../lib/api-client'
+import type { PlayerOut, PlayersParams, RosterSlot } from '../lib/api-types'
 
 interface PlayerSearchModalProps {
-  isOpen: boolean;
-  onClose: () => void;
-  onSelectPlayer: (player: PlayerOut, rosterSlot: RosterSlot) => void;
-  availableSlots: RosterSlot[];
-  teamId: string;
-  defaultSlot?: RosterSlot | null;
+  isOpen: boolean
+  onClose: () => void
+  onSelectPlayer: (player: PlayerOut, rosterSlot: RosterSlot) => void
+  availableSlots: RosterSlot[]
+  teamId: string
+  defaultSlot?: RosterSlot | null
 }
 
 export function PlayerSearchModal({
@@ -20,169 +20,176 @@ export function PlayerSearchModal({
   onSelectPlayer,
   availableSlots,
   teamId,
-  defaultSlot
+  defaultSlot,
 }: PlayerSearchModalProps) {
-  const [searchTerm, setSearchTerm] = useState('');
-  const [selectedPosition, setSelectedPosition] = useState<string>('');
-  const [selectedTeam, setSelectedTeam] = useState<string>('');
-  const [players, setPlayers] = useState<PlayerOut[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [selectedSlot, setSelectedSlot] = useState<RosterSlot | null>(null);
+  const [searchTerm, setSearchTerm] = useState('')
+  const [selectedPosition, setSelectedPosition] = useState<string>('')
+  const [selectedTeam, setSelectedTeam] = useState<string>('')
+  const [players, setPlayers] = useState<PlayerOut[]>([])
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const [selectedSlot, setSelectedSlot] = useState<RosterSlot | null>(null)
 
   // Get eligible positions for a roster slot
   const getEligiblePositions = (slot: RosterSlot | null): string[] => {
-    if (!slot) return [];
-    
+    if (!slot) return []
+
     if (slot.type === 'bench' || slot.type === 'ir') {
-      return ['QB', 'RB', 'WR', 'TE', 'K', 'DST']; // All positions eligible for bench/IR
+      return ['QB', 'RB', 'WR', 'TE', 'K', 'DST'] // All positions eligible for bench/IR
     }
-    
+
     // Starting positions
     switch (slot.position?.toLowerCase()) {
       case 'qb':
-        return ['QB'];
+        return ['QB']
       case 'rb':
-        return ['RB'];
+        return ['RB']
       case 'wr':
-        return ['WR'];
+        return ['WR']
       case 'te':
-        return ['TE'];
+        return ['TE']
       case 'flex':
-        return ['RB', 'WR', 'TE'];
+        return ['RB', 'WR', 'TE']
       case 'superflex':
-        return ['QB', 'RB', 'WR', 'TE'];
+        return ['QB', 'RB', 'WR', 'TE']
       case 'k':
-        return ['K'];
+        return ['K']
       case 'def':
       case 'dst':
-        return ['DST'];
+        return ['DST']
       default:
-        return ['QB', 'RB', 'WR', 'TE', 'K', 'DST']; // Fallback to all positions
+        return ['QB', 'RB', 'WR', 'TE', 'K', 'DST'] // Fallback to all positions
     }
-  };
+  }
 
   // Reset state when modal opens
   useEffect(() => {
     if (isOpen) {
-      setSearchTerm('');
-      setSelectedTeam('');
-      
+      setSearchTerm('')
+      setSelectedTeam('')
+
       // Use defaultSlot if provided and valid, otherwise use first available slot
-      let slotToUse: RosterSlot | null = null;
-      
-      if (defaultSlot && availableSlots.some(s => 
-        s.type === defaultSlot.type && 
-        s.position === defaultSlot.position && 
-        s.index === defaultSlot.index
-      )) {
-        slotToUse = defaultSlot;
+      let slotToUse: RosterSlot | null = null
+
+      if (
+        defaultSlot &&
+        availableSlots.some(
+          (s) =>
+            s.type === defaultSlot.type &&
+            s.position === defaultSlot.position &&
+            s.index === defaultSlot.index
+        )
+      ) {
+        slotToUse = defaultSlot
       } else {
-        slotToUse = availableSlots[0] || null;
+        slotToUse = availableSlots[0] || null
       }
-      
-      setSelectedSlot(slotToUse);
-      
+
+      setSelectedSlot(slotToUse)
+
       // Set position based on selected slot
-      const eligiblePositions = getEligiblePositions(slotToUse);
-      setSelectedPosition(eligiblePositions.length === 1 ? eligiblePositions[0] : '');
-      
-      setError(null);
-      searchPlayers();
+      const eligiblePositions = getEligiblePositions(slotToUse)
+      setSelectedPosition(eligiblePositions.length === 1 ? eligiblePositions[0] : '')
+
+      setError(null)
+      searchPlayers()
     }
-  }, [isOpen, defaultSlot]);
+  }, [isOpen, defaultSlot])
 
   // Update position filter when slot changes
   useEffect(() => {
-    const eligiblePositions = getEligiblePositions(selectedSlot);
-    
+    const eligiblePositions = getEligiblePositions(selectedSlot)
+
     // If only one position is eligible, auto-select it
     if (eligiblePositions.length === 1) {
-      setSelectedPosition(eligiblePositions[0]);
+      setSelectedPosition(eligiblePositions[0])
     } else if (eligiblePositions.length > 1 && !eligiblePositions.includes(selectedPosition)) {
       // Clear position if current selection is not eligible for the new slot
-      setSelectedPosition('');
+      setSelectedPosition('')
     }
-  }, [selectedSlot]);
+  }, [selectedSlot])
 
   // Search players when filters change
   useEffect(() => {
     if (isOpen) {
       const timer = setTimeout(() => {
-        searchPlayers();
-      }, 300);
-      return () => clearTimeout(timer);
+        searchPlayers()
+      }, 300)
+      return () => clearTimeout(timer)
     }
-  }, [searchTerm, selectedPosition, selectedTeam, isOpen]);
+  }, [searchTerm, selectedPosition, selectedTeam, isOpen])
 
   const searchPlayers = async () => {
-    setLoading(true);
-    setError(null);
+    setLoading(true)
+    setError(null)
 
     try {
       const params: PlayersParams = {
         limit: 50,
         offset: 0,
-      };
+      }
 
       if (searchTerm.trim()) {
-        params.search = searchTerm.trim();
+        params.search = searchTerm.trim()
       }
       if (selectedPosition) {
-        params.position = selectedPosition;
+        params.position = selectedPosition
       }
       if (selectedTeam) {
-        params.team = selectedTeam;
+        params.team = selectedTeam
       }
 
-      const response = await apiClient.getPlayers(params);
-      setPlayers(response.items);
+      const response = await apiClient.getPlayers(params)
+      setPlayers(response.items)
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to search players');
-      setPlayers([]);
+      setError(err instanceof Error ? err.message : 'Failed to search players')
+      setPlayers([])
     } finally {
-      setLoading(false);
+      setLoading(false)
     }
-  };
+  }
 
   const handleSelectPlayer = (player: PlayerOut) => {
     if (!selectedSlot) {
-      setError('Please select a roster slot');
-      return;
+      setError('Please select a roster slot')
+      return
     }
-    
+
     // Validate player position is eligible for selected slot
-    const eligiblePositions = getEligiblePositions(selectedSlot);
+    const eligiblePositions = getEligiblePositions(selectedSlot)
     if (!eligiblePositions.includes(player.position || '')) {
-      setError(`${player.position} players cannot be added to this slot. Eligible positions: ${eligiblePositions.join(', ')}`);
-      return;
+      setError(
+        `${player.position} players cannot be added to this slot. Eligible positions: ${eligiblePositions.join(', ')}`
+      )
+      return
     }
-    
-    onSelectPlayer(player, selectedSlot);
-  };
+
+    onSelectPlayer(player, selectedSlot)
+  }
 
   // Available slot options grouped by type
   const slotOptions = useMemo(() => {
     const slots = {
       starter: [] as Array<{ slot: RosterSlot; label: string }>,
       bench: [] as Array<{ slot: RosterSlot; label: string }>,
-      ir: [] as Array<{ slot: RosterSlot; label: string }>
-    };
+      ir: [] as Array<{ slot: RosterSlot; label: string }>,
+    }
 
-    availableSlots.forEach(slot => {
-      const label = slot.type === 'starter' 
-        ? `${slot.position}${slot.index > 1 ? slot.index : ''}`
-        : slot.type === 'bench'
-        ? `Bench ${slot.index}`
-        : `IR ${slot.index}`;
-      
-      slots[slot.type].push({ slot, label });
-    });
+    availableSlots.forEach((slot) => {
+      const label =
+        slot.type === 'starter'
+          ? `${slot.position}${slot.index > 1 ? slot.index : ''}`
+          : slot.type === 'bench'
+            ? `Bench ${slot.index}`
+            : `IR ${slot.index}`
 
-    return slots;
-  }, [availableSlots]);
+      slots[slot.type].push({ slot, label })
+    })
 
-  if (!isOpen) return null;
+    return slots
+  }, [availableSlots])
+
+  if (!isOpen) return null
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
@@ -226,8 +233,10 @@ export function PlayerSearchModal({
               {getEligiblePositions(selectedSlot).length > 1 && (
                 <option value="">All Eligible Positions</option>
               )}
-              {getEligiblePositions(selectedSlot).map(position => (
-                <option key={position} value={position}>{position}</option>
+              {getEligiblePositions(selectedSlot).map((position) => (
+                <option key={position} value={position}>
+                  {position}
+                </option>
               ))}
             </select>
 
@@ -274,16 +283,21 @@ export function PlayerSearchModal({
 
             {/* Roster Slot Selector */}
             <select
-              value={selectedSlot ? `${selectedSlot.type}-${selectedSlot.position || 'bench'}-${selectedSlot.index}` : ''}
+              value={
+                selectedSlot
+                  ? `${selectedSlot.type}-${selectedSlot.position || 'bench'}-${selectedSlot.index}`
+                  : ''
+              }
               onChange={(e) => {
                 if (e.target.value) {
-                  const [type, position, index] = e.target.value.split('-');
-                  const slot = availableSlots.find(s => 
-                    s.type === type && 
-                    (s.position || 'bench') === position && 
-                    s.index === parseInt(index)
-                  );
-                  setSelectedSlot(slot || null);
+                  const [type, position, index] = e.target.value.split('-')
+                  const slot = availableSlots.find(
+                    (s) =>
+                      s.type === type &&
+                      (s.position || 'bench') === position &&
+                      s.index === parseInt(index)
+                  )
+                  setSelectedSlot(slot || null)
                 }
               }}
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
@@ -292,7 +306,10 @@ export function PlayerSearchModal({
               {slotOptions.starter.length > 0 && (
                 <optgroup label="Starting Lineup">
                   {slotOptions.starter.map(({ slot, label }) => (
-                    <option key={`starter-${slot.position}-${slot.index}`} value={`${slot.type}-${slot.position}-${slot.index}`}>
+                    <option
+                      key={`starter-${slot.position}-${slot.index}`}
+                      value={`${slot.type}-${slot.position}-${slot.index}`}
+                    >
                       {label}
                     </option>
                   ))}
@@ -332,7 +349,10 @@ export function PlayerSearchModal({
             <div className="p-6">
               <div className="space-y-3">
                 {[...Array(10)].map((_, i) => (
-                  <div key={i} className="animate-pulse flex items-center space-x-3 p-3 bg-gray-100 rounded-md">
+                  <div
+                    key={i}
+                    className="animate-pulse flex items-center space-x-3 p-3 bg-gray-100 rounded-md"
+                  >
                     <div className="w-10 h-10 bg-gray-300 rounded-full"></div>
                     <div className="flex-1">
                       <div className="h-4 bg-gray-300 rounded w-1/3 mb-2"></div>
@@ -389,11 +409,9 @@ export function PlayerSearchModal({
         {/* Footer */}
         <div className="p-4 border-t bg-gray-50 flex justify-between items-center">
           <div className="text-sm text-gray-600">
-            {availableSlots.length > 0 ? (
-              `${availableSlots.length} available slot${availableSlots.length !== 1 ? 's' : ''}`
-            ) : (
-              'No available slots'
-            )}
+            {availableSlots.length > 0
+              ? `${availableSlots.length} available slot${availableSlots.length !== 1 ? 's' : ''}`
+              : 'No available slots'}
           </div>
           <button
             onClick={onClose}
@@ -404,5 +422,5 @@ export function PlayerSearchModal({
         </div>
       </div>
     </div>
-  );
+  )
 }

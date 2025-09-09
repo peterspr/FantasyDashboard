@@ -1,21 +1,21 @@
-"use client";
+'use client'
 
-import React from 'react';
-import Link from 'next/link';
-import { ArrowLeft, Users, Settings, Calendar, Trophy } from 'lucide-react';
-import { useTeam, useTeamRoster } from '../../../lib/team-hooks';
-import { useAuth } from '../../../lib/auth-context';
+import React from 'react'
+import Link from 'next/link'
+import { ArrowLeft, Users, Settings, Calendar, Trophy } from 'lucide-react'
+import { useTeam, useTeamRoster } from '../../../lib/team-hooks'
+import { useAuth } from '../../../lib/auth-context'
 
 interface TeamDashboardProps {
-  params: { teamId: string };
+  params: { teamId: string }
 }
 
 export default function TeamDashboard({ params }: TeamDashboardProps) {
-  const teamId = params.teamId;
-  const { isAuthenticated } = useAuth();
-  
-  const { data: team, isLoading: teamLoading, error: teamError } = useTeam(teamId);
-  const { data: roster, isLoading: rosterLoading } = useTeamRoster(teamId);
+  const teamId = params.teamId
+  const { isAuthenticated } = useAuth()
+
+  const { data: team, isLoading: teamLoading, error: teamError } = useTeam(teamId)
+  const { data: roster, isLoading: rosterLoading } = useTeamRoster(teamId)
 
   if (!isAuthenticated) {
     return (
@@ -24,7 +24,7 @@ export default function TeamDashboard({ params }: TeamDashboardProps) {
           <p className="text-gray-600">Please log in to view your team.</p>
         </div>
       </div>
-    );
+    )
   }
 
   if (teamLoading || rosterLoading) {
@@ -59,7 +59,7 @@ export default function TeamDashboard({ params }: TeamDashboardProps) {
           </div>
         </div>
       </div>
-    );
+    )
   }
 
   if (teamError) {
@@ -69,7 +69,7 @@ export default function TeamDashboard({ params }: TeamDashboardProps) {
           <p className="text-red-800">Failed to load team: {teamError.message}</p>
         </div>
       </div>
-    );
+    )
   }
 
   if (!team) {
@@ -79,71 +79,69 @@ export default function TeamDashboard({ params }: TeamDashboardProps) {
           <p className="text-gray-600">Team not found.</p>
         </div>
       </div>
-    );
+    )
   }
 
   // Group roster by position types
-  const startingRoster = roster?.players.filter(p => p.roster_slot.type === 'starter') || [];
-  const benchRoster = roster?.players.filter(p => p.roster_slot.type === 'bench') || [];
-  const irRoster = roster?.players.filter(p => p.roster_slot.type === 'ir') || [];
+  const startingRoster = roster?.players.filter((p) => p.roster_slot.type === 'starter') || []
+  const benchRoster = roster?.players.filter((p) => p.roster_slot.type === 'bench') || []
+  const irRoster = roster?.players.filter((p) => p.roster_slot.type === 'ir') || []
 
   // Calculate starting lineup slots with custom ordering
   const getPositionOrder = (position: string, index: number) => {
-    const positionUpper = position?.toUpperCase() || '';
+    const positionUpper = position?.toUpperCase() || ''
     const orderMap: Record<string, number> = {
-      'QB': 0,
-      'RB': 1,
-      'WR': 3,
-      'TE': 5,
-      'FLEX': 6,
-      'DST': 7,
-      'DEF': 7,
-      'K': 8,
-    };
-    
-    // Base order for position type, plus index for sub-ordering (RB1, RB2, etc.)
-    const baseOrder = orderMap[positionUpper] !== undefined ? orderMap[positionUpper] : 999;
-    return baseOrder * 10 + index;
-  };
+      QB: 0,
+      RB: 1,
+      WR: 3,
+      TE: 5,
+      FLEX: 6,
+      DST: 7,
+      DEF: 7,
+      K: 8,
+    }
 
-  const startingSlots = [];
+    // Base order for position type, plus index for sub-ordering (RB1, RB2, etc.)
+    const baseOrder = orderMap[positionUpper] !== undefined ? orderMap[positionUpper] : 999
+    return baseOrder * 10 + index
+  }
+
+  const startingSlots = []
   for (const [position, count] of Object.entries(team.roster_positions.starters)) {
-    const numSlots = Number(count);
+    const numSlots = Number(count)
     for (let i = 1; i <= numSlots; i++) {
-      const player = startingRoster.find(p => 
-        p.roster_slot.position === position && p.roster_slot.index === i
-      );
+      const player = startingRoster.find(
+        (p) => p.roster_slot.position === position && p.roster_slot.index === i
+      )
       startingSlots.push({
         position,
         index: i,
         player,
         slotName: numSlots > 1 ? `${position}${i}` : position,
         sortOrder: getPositionOrder(position, i),
-      });
+      })
     }
   }
 
   // Sort slots by the desired order
-  startingSlots.sort((a, b) => a.sortOrder - b.sortOrder);
+  startingSlots.sort((a, b) => a.sortOrder - b.sortOrder)
 
   return (
     <div className="container mx-auto px-4 py-8">
       {/* Header */}
       <div className="mb-6">
-        <Link 
+        <Link
           href="/teams"
           className="inline-flex items-center text-blue-600 hover:text-blue-700 mb-4"
         >
           <ArrowLeft className="w-4 h-4 mr-1" />
           Back to Teams
         </Link>
-        
+
         <div className="flex justify-between items-start mb-4">
           <div>
             <h1 className="text-3xl font-bold text-gray-900">{team.name}</h1>
-            {team.league_name && (
-              <p className="text-gray-600 mt-1">{team.league_name}</p>
-            )}
+            {team.league_name && <p className="text-gray-600 mt-1">{team.league_name}</p>}
           </div>
           <div className="flex space-x-2">
             <Link
@@ -170,7 +168,9 @@ export default function TeamDashboard({ params }: TeamDashboardProps) {
             <div className="text-sm text-gray-600">Players</div>
           </div>
           <div className="bg-white rounded-lg shadow-sm p-4 text-center">
-            <div className="text-2xl font-bold text-green-600 capitalize">{team.scoring_system}</div>
+            <div className="text-2xl font-bold text-green-600 capitalize">
+              {team.scoring_system}
+            </div>
             <div className="text-sm text-gray-600">Scoring</div>
           </div>
           <div className="bg-white rounded-lg shadow-sm p-4 text-center">
@@ -212,7 +212,8 @@ export default function TeamDashboard({ params }: TeamDashboardProps) {
                           </div>
                           <div className="text-sm text-gray-600">
                             {slot.player.player_info?.team} • {slot.player.player_info?.position}
-                            {slot.player.player_info?.jersey_number && ` • #${slot.player.player_info.jersey_number}`}
+                            {slot.player.player_info?.jersey_number &&
+                              ` • #${slot.player.player_info.jersey_number}`}
                           </div>
                         </>
                       ) : (
@@ -225,7 +226,8 @@ export default function TeamDashboard({ params }: TeamDashboardProps) {
                           {slot.player.player_info.projection.proj_pts.toFixed(1)} pts
                         </div>
                         <div className="text-xs text-gray-500">
-                          {slot.player.player_info.projection.low.toFixed(1)}-{slot.player.player_info.projection.high.toFixed(1)}
+                          {slot.player.player_info.projection.low.toFixed(1)}-
+                          {slot.player.player_info.projection.high.toFixed(1)}
                         </div>
                       </div>
                     )}
@@ -270,7 +272,8 @@ export default function TeamDashboard({ params }: TeamDashboardProps) {
                       </div>
                       <div className="text-xs text-gray-600">
                         {player.player_info?.team} • {player.player_info?.position}
-                        {player.player_info?.jersey_number && ` • #${player.player_info.jersey_number}`}
+                        {player.player_info?.jersey_number &&
+                          ` • #${player.player_info.jersey_number}`}
                       </div>
                     </div>
                     {player.player_info?.projection && (
@@ -304,7 +307,8 @@ export default function TeamDashboard({ params }: TeamDashboardProps) {
                         </div>
                         <div className="text-xs text-gray-600">
                           {player.player_info?.team} • {player.player_info?.position}
-                          {player.player_info?.jersey_number && ` • #${player.player_info.jersey_number}`}
+                          {player.player_info?.jersey_number &&
+                            ` • #${player.player_info.jersey_number}`}
                         </div>
                       </div>
                       {player.player_info?.projection && (
@@ -350,5 +354,5 @@ export default function TeamDashboard({ params }: TeamDashboardProps) {
         </div>
       </div>
     </div>
-  );
+  )
 }

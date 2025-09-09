@@ -1,6 +1,6 @@
-'use client';
+'use client'
 
-import React from 'react';
+import React from 'react'
 import {
   ComposedChart,
   Line,
@@ -11,30 +11,30 @@ import {
   Tooltip,
   ResponsiveContainer,
   Legend,
-} from 'recharts';
-import { formatNumber } from '@/lib/utils';
+} from 'recharts'
+import { formatNumber } from '@/lib/utils'
 
 interface QBDataPoint {
-  week: number;
-  pass_yds_pred?: number;
-  rush_yds_pred?: number;
-  pass_td_pred?: number;
-  rush_td_pred?: number;
-  pass_yds_actual?: number;
-  rush_yds_actual?: number;
-  pass_td_actual?: number;
-  rush_td_actual?: number;
+  week: number
+  pass_yds_pred?: number
+  rush_yds_pred?: number
+  pass_td_pred?: number
+  rush_td_pred?: number
+  pass_yds_actual?: number
+  rush_yds_actual?: number
+  pass_td_actual?: number
+  rush_td_actual?: number
 }
 
 interface QBPassingVsRushingChartProps {
-  data: any[];
-  title?: string;
-  actualData?: Map<number, any> | Record<number, any>;
+  data: any[]
+  title?: string
+  actualData?: Map<number, any> | Record<number, any>
 }
 
 export function QBPassingVsRushingChart({
   data,
-  title = "Passing vs Rushing Production",
+  title = 'Passing vs Rushing Production',
   actualData,
 }: QBPassingVsRushingChartProps) {
   if (!data || data.length === 0) {
@@ -42,14 +42,14 @@ export function QBPassingVsRushingChart({
       <div className="flex items-center justify-center h-64 text-gray-500">
         No QB data available
       </div>
-    );
+    )
   }
 
   // Transform data for the chart
-  const chartData: QBDataPoint[] = data.map(item => {
-    const components = item.components || {};
-    const week = item.week;
-    const actual = actualData instanceof Map ? actualData.get(week) : actualData?.[week];
+  const chartData: QBDataPoint[] = data.map((item) => {
+    const components = item.components || {}
+    const week = item.week
+    const actual = actualData instanceof Map ? actualData.get(week) : actualData?.[week]
 
     return {
       week,
@@ -63,29 +63,24 @@ export function QBPassingVsRushingChart({
       rush_yds_actual: actual?.rush_yds,
       pass_td_actual: actual?.pass_td,
       rush_td_actual: actual?.rush_td,
-    };
-  });
+    }
+  })
 
   return (
     <div className="space-y-4">
-      {title && (
-        <h3 className="text-lg font-semibold text-gray-900">{title}</h3>
-      )}
-      
+      {title && <h3 className="text-lg font-semibold text-gray-900">{title}</h3>}
+
       <ResponsiveContainer width="100%" height={350}>
-        <ComposedChart
-          data={chartData}
-          margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
-        >
+        <ComposedChart data={chartData} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
           <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-          
+
           <XAxis
             dataKey="week"
             axisLine={false}
             tickLine={false}
             tick={{ fontSize: 12, fill: '#6b7280' }}
           />
-          
+
           <YAxis
             yAxisId="yards"
             axisLine={false}
@@ -102,12 +97,12 @@ export function QBPassingVsRushingChart({
             tick={{ fontSize: 12, fill: '#6b7280' }}
             tickFormatter={(value) => formatNumber(value, 1)}
           />
-          
+
           <Tooltip
             content={({ active, payload, label }) => {
               if (active && payload && payload.length) {
-                const data = chartData.find(d => d.week === label);
-                if (!data) return null;
+                const data = chartData.find((d) => d.week === label)
+                if (!data) return null
 
                 return (
                   <div className="bg-white p-3 border border-gray-200 rounded-lg shadow-lg">
@@ -116,30 +111,34 @@ export function QBPassingVsRushingChart({
                       <div className="border-b pb-1 mb-2">
                         <p className="text-sm font-medium text-gray-700">Passing</p>
                         <p className="text-blue-600">
-                          Proj: {formatNumber(data.pass_yds_pred || 0)} yds, {formatNumber(data.pass_td_pred || 0, 1)} TDs
+                          Proj: {formatNumber(data.pass_yds_pred || 0)} yds,{' '}
+                          {formatNumber(data.pass_td_pred || 0, 1)} TDs
                         </p>
                         {data.pass_yds_actual !== undefined && (
                           <p className="text-green-600">
-                            Actual: {formatNumber(data.pass_yds_actual)} yds, {formatNumber(data.pass_td_actual || 0, 0)} TDs
+                            Actual: {formatNumber(data.pass_yds_actual)} yds,{' '}
+                            {formatNumber(data.pass_td_actual || 0, 0)} TDs
                           </p>
                         )}
                       </div>
                       <div>
                         <p className="text-sm font-medium text-gray-700">Rushing</p>
                         <p className="text-red-600">
-                          Proj: {formatNumber(data.rush_yds_pred || 0)} yds, {formatNumber(data.rush_td_pred || 0, 1)} TDs
+                          Proj: {formatNumber(data.rush_yds_pred || 0)} yds,{' '}
+                          {formatNumber(data.rush_td_pred || 0, 1)} TDs
                         </p>
                         {data.rush_yds_actual !== undefined && (
                           <p className="text-orange-600">
-                            Actual: {formatNumber(data.rush_yds_actual)} yds, {formatNumber(data.rush_td_actual || 0, 0)} TDs
+                            Actual: {formatNumber(data.rush_yds_actual)} yds,{' '}
+                            {formatNumber(data.rush_td_actual || 0, 0)} TDs
                           </p>
                         )}
                       </div>
                     </div>
                   </div>
-                );
+                )
               }
-              return null;
+              return null
             }}
           />
 
@@ -220,5 +219,5 @@ export function QBPassingVsRushingChart({
         <p>• Dashed lines show actual performance when available</p>
       </div>
     </div>
-  );
+  )
 }

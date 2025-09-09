@@ -1,28 +1,33 @@
-"use client";
+'use client'
 
-import React, { useState } from 'react';
-import Link from 'next/link';
-import { ArrowLeft, Users, Plus, Trash2, Settings2 } from 'lucide-react';
-import { useTeam, useTeamRoster, useAddPlayerToRoster, useRemovePlayerFromRoster } from '../../../../lib/team-hooks';
-import { useAuth } from '../../../../lib/auth-context';
-import { PlayerSearchModal } from '../../../../components/PlayerSearchModal';
-import type { PlayerOut, RosterSlot } from '../../../../lib/api-types';
+import React, { useState } from 'react'
+import Link from 'next/link'
+import { ArrowLeft, Users, Plus, Trash2, Settings2 } from 'lucide-react'
+import {
+  useTeam,
+  useTeamRoster,
+  useAddPlayerToRoster,
+  useRemovePlayerFromRoster,
+} from '../../../../lib/team-hooks'
+import { useAuth } from '../../../../lib/auth-context'
+import { PlayerSearchModal } from '../../../../components/PlayerSearchModal'
+import type { PlayerOut, RosterSlot } from '../../../../lib/api-types'
 
 interface RosterPageProps {
-  params: { teamId: string };
+  params: { teamId: string }
 }
 
 export default function RosterPage({ params }: RosterPageProps) {
-  const teamId = params.teamId;
-  const { isAuthenticated } = useAuth();
-  
-  const { data: team, isLoading: teamLoading, error: teamError } = useTeam(teamId);
-  const { data: roster, isLoading: rosterLoading, error: rosterError } = useTeamRoster(teamId);
-  const addPlayerMutation = useAddPlayerToRoster();
-  const removePlayerMutation = useRemovePlayerFromRoster();
-  
-  const [isPlayerSearchOpen, setIsPlayerSearchOpen] = useState(false);
-  const [defaultSlot, setDefaultSlot] = useState<RosterSlot | null>(null);
+  const teamId = params.teamId
+  const { isAuthenticated } = useAuth()
+
+  const { data: team, isLoading: teamLoading, error: teamError } = useTeam(teamId)
+  const { data: roster, isLoading: rosterLoading, error: rosterError } = useTeamRoster(teamId)
+  const addPlayerMutation = useAddPlayerToRoster()
+  const removePlayerMutation = useRemovePlayerFromRoster()
+
+  const [isPlayerSearchOpen, setIsPlayerSearchOpen] = useState(false)
+  const [defaultSlot, setDefaultSlot] = useState<RosterSlot | null>(null)
 
   if (!isAuthenticated) {
     return (
@@ -31,7 +36,7 @@ export default function RosterPage({ params }: RosterPageProps) {
           <p className="text-gray-600">Please log in to manage your roster.</p>
         </div>
       </div>
-    );
+    )
   }
 
   if (teamLoading || rosterLoading) {
@@ -46,7 +51,7 @@ export default function RosterPage({ params }: RosterPageProps) {
           </div>
         </div>
       </div>
-    );
+    )
   }
 
   if (teamError || rosterError) {
@@ -58,7 +63,7 @@ export default function RosterPage({ params }: RosterPageProps) {
           </p>
         </div>
       </div>
-    );
+    )
   }
 
   if (!team) {
@@ -68,63 +73,63 @@ export default function RosterPage({ params }: RosterPageProps) {
           <p className="text-gray-600">Team not found.</p>
         </div>
       </div>
-    );
+    )
   }
 
   // Group roster by position types
-  const startingRoster = roster?.players.filter(p => p.roster_slot.type === 'starter') || [];
-  const benchRoster = roster?.players.filter(p => p.roster_slot.type === 'bench') || [];
-  const irRoster = roster?.players.filter(p => p.roster_slot.type === 'ir') || [];
+  const startingRoster = roster?.players.filter((p) => p.roster_slot.type === 'starter') || []
+  const benchRoster = roster?.players.filter((p) => p.roster_slot.type === 'bench') || []
+  const irRoster = roster?.players.filter((p) => p.roster_slot.type === 'ir') || []
 
   // Calculate starting lineup slots with custom ordering
   const getPositionOrder = (position: string, index: number) => {
-    const positionUpper = position?.toUpperCase() || '';
+    const positionUpper = position?.toUpperCase() || ''
     const orderMap: Record<string, number> = {
-      'QB': 0,
-      'RB': 1,
-      'WR': 3,
-      'TE': 5,
-      'FLEX': 6,
-      'DST': 7,
-      'DEF': 7,
-      'K': 8,
-    };
-    
-    // Base order for position type, plus index for sub-ordering (RB1, RB2, etc.)
-    const baseOrder = orderMap[positionUpper] !== undefined ? orderMap[positionUpper] : 999;
-    return baseOrder * 10 + index;
-  };
+      QB: 0,
+      RB: 1,
+      WR: 3,
+      TE: 5,
+      FLEX: 6,
+      DST: 7,
+      DEF: 7,
+      K: 8,
+    }
 
-  const startingSlots = [];
+    // Base order for position type, plus index for sub-ordering (RB1, RB2, etc.)
+    const baseOrder = orderMap[positionUpper] !== undefined ? orderMap[positionUpper] : 999
+    return baseOrder * 10 + index
+  }
+
+  const startingSlots = []
   for (const [position, count] of Object.entries(team.roster_positions.starters)) {
-    const numSlots = Number(count);
+    const numSlots = Number(count)
     for (let i = 1; i <= numSlots; i++) {
-      const player = startingRoster.find(p => 
-        p.roster_slot.position === position && p.roster_slot.index === i
-      );
+      const player = startingRoster.find(
+        (p) => p.roster_slot.position === position && p.roster_slot.index === i
+      )
       startingSlots.push({
         position,
         index: i,
         player,
         slotName: numSlots > 1 ? `${position}${i}` : position,
         sortOrder: getPositionOrder(position, i),
-      });
+      })
     }
   }
 
   // Sort slots by the desired order
-  startingSlots.sort((a, b) => a.sortOrder - b.sortOrder);
+  startingSlots.sort((a, b) => a.sortOrder - b.sortOrder)
 
   const handleRemovePlayer = async (playerId: string) => {
     if (confirm('Are you sure you want to remove this player from your roster?')) {
       try {
-        await removePlayerMutation.mutateAsync({ teamId, playerId });
+        await removePlayerMutation.mutateAsync({ teamId, playerId })
       } catch (error) {
-        console.error('Failed to remove player:', error);
-        alert('Failed to remove player from roster');
+        console.error('Failed to remove player:', error)
+        alert('Failed to remove player from roster')
       }
     }
-  };
+  }
 
   const handleAddPlayer = async (player: PlayerOut, rosterSlot: RosterSlot) => {
     try {
@@ -134,82 +139,84 @@ export default function RosterPage({ params }: RosterPageProps) {
           player_id: player.player_id,
           player_position: player.position || 'UNKNOWN',
           roster_slot: rosterSlot,
-        }
-      });
-      setIsPlayerSearchOpen(false);
-      setDefaultSlot(null);
+        },
+      })
+      setIsPlayerSearchOpen(false)
+      setDefaultSlot(null)
     } catch (error) {
-      console.error('Failed to add player:', error);
-      alert('Failed to add player to roster');
+      console.error('Failed to add player:', error)
+      alert('Failed to add player to roster')
     }
-  };
+  }
 
   const openPlayerSearchForSlot = (slot?: RosterSlot) => {
-    setDefaultSlot(slot || null);
-    setIsPlayerSearchOpen(true);
-  };
+    setDefaultSlot(slot || null)
+    setIsPlayerSearchOpen(true)
+  }
 
   // Calculate available slots
   const getAvailableSlots = (): RosterSlot[] => {
-    if (!roster || !team) return [];
+    if (!roster || !team) return []
 
-    const availableSlots: RosterSlot[] = [];
+    const availableSlots: RosterSlot[] = []
     const occupiedSlots = new Set(
-      roster.players.map(p => `${p.roster_slot.type}-${p.roster_slot.position || 'bench'}-${p.roster_slot.index}`)
-    );
+      roster.players.map(
+        (p) => `${p.roster_slot.type}-${p.roster_slot.position || 'bench'}-${p.roster_slot.index}`
+      )
+    )
 
     // Starting slots
     for (const [position, count] of Object.entries(team.roster_positions.starters)) {
-      const numSlots = Number(count);
+      const numSlots = Number(count)
       for (let i = 1; i <= numSlots; i++) {
-        const slotKey = `starter-${position}-${i}`;
+        const slotKey = `starter-${position}-${i}`
         if (!occupiedSlots.has(slotKey)) {
           availableSlots.push({
             type: 'starter',
             position,
             index: i,
-          });
+          })
         }
       }
     }
 
     // Bench slots
     for (let i = 1; i <= team.roster_positions.bench; i++) {
-      const slotKey = `bench-bench-${i}`;
+      const slotKey = `bench-bench-${i}`
       if (!occupiedSlots.has(slotKey)) {
         availableSlots.push({
           type: 'bench',
           index: i,
-        });
+        })
       }
     }
 
     // IR slots
     for (let i = 1; i <= (team.roster_positions.ir || 0); i++) {
-      const slotKey = `ir-ir-${i}`;
+      const slotKey = `ir-ir-${i}`
       if (!occupiedSlots.has(slotKey)) {
         availableSlots.push({
           type: 'ir',
           index: i,
-        });
+        })
       }
     }
 
-    return availableSlots;
-  };
+    return availableSlots
+  }
 
   return (
     <div className="container mx-auto px-4 py-8">
       {/* Header */}
       <div className="mb-6">
-        <Link 
+        <Link
           href={`/teams/${teamId}`}
           className="inline-flex items-center text-blue-600 hover:text-blue-700 mb-4"
         >
           <ArrowLeft className="w-4 h-4 mr-1" />
           Back to Team Dashboard
         </Link>
-        
+
         <div className="flex justify-between items-start mb-4">
           <div>
             <h1 className="text-3xl font-bold text-gray-900 flex items-center">
@@ -232,7 +239,7 @@ export default function RosterPage({ params }: RosterPageProps) {
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
           <div className="bg-white rounded-lg shadow-sm p-4 text-center">
             <div className="text-2xl font-bold text-blue-600">
-              {startingSlots.filter(s => s.player).length}/{startingSlots.length}
+              {startingSlots.filter((s) => s.player).length}/{startingSlots.length}
             </div>
             <div className="text-sm text-gray-600">Starting Lineup</div>
           </div>
@@ -281,7 +288,8 @@ export default function RosterPage({ params }: RosterPageProps) {
                           </div>
                           <div className="text-sm text-gray-600">
                             {slot.player.player_info?.team} • {slot.player.player_info?.position}
-                            {slot.player.player_info?.jersey_number && ` • #${slot.player.player_info.jersey_number}`}
+                            {slot.player.player_info?.jersey_number &&
+                              ` • #${slot.player.player_info.jersey_number}`}
                           </div>
                         </>
                       ) : (
@@ -294,7 +302,8 @@ export default function RosterPage({ params }: RosterPageProps) {
                           {slot.player.player_info.projection.proj_pts.toFixed(1)} pts
                         </div>
                         <div className="text-xs text-gray-500">
-                          {slot.player.player_info.projection.low.toFixed(1)}-{slot.player.player_info.projection.high.toFixed(1)}
+                          {slot.player.player_info.projection.low.toFixed(1)}-
+                          {slot.player.player_info.projection.high.toFixed(1)}
                         </div>
                       </div>
                     )}
@@ -310,11 +319,13 @@ export default function RosterPage({ params }: RosterPageProps) {
                       </button>
                     ) : (
                       <button
-                        onClick={() => openPlayerSearchForSlot({
-                          type: 'starter',
-                          position: slot.position,
-                          index: slot.index
-                        })}
+                        onClick={() =>
+                          openPlayerSearchForSlot({
+                            type: 'starter',
+                            position: slot.position,
+                            index: slot.index,
+                          })
+                        }
                         className="text-blue-600 hover:text-blue-700 text-sm font-medium px-3 py-1 rounded-md hover:bg-blue-50"
                         disabled={getAvailableSlots().length === 0}
                       >
@@ -338,11 +349,11 @@ export default function RosterPage({ params }: RosterPageProps) {
               </h3>
               <button
                 onClick={() => {
-                  const availableBenchSlots = getAvailableSlots().filter(s => s.type === 'bench');
+                  const availableBenchSlots = getAvailableSlots().filter((s) => s.type === 'bench')
                   if (availableBenchSlots.length > 0) {
-                    openPlayerSearchForSlot(availableBenchSlots[0]);
+                    openPlayerSearchForSlot(availableBenchSlots[0])
                   } else {
-                    openPlayerSearchForSlot();
+                    openPlayerSearchForSlot()
                   }
                 }}
                 className="text-green-600 hover:text-green-700 p-1 rounded-md hover:bg-green-50"
@@ -354,14 +365,18 @@ export default function RosterPage({ params }: RosterPageProps) {
             <div className="space-y-2">
               {benchRoster.length > 0 ? (
                 benchRoster.map((player) => (
-                  <div key={player.player_id} className="flex justify-between items-center py-2 px-3 bg-gray-50 rounded-md">
+                  <div
+                    key={player.player_id}
+                    className="flex justify-between items-center py-2 px-3 bg-gray-50 rounded-md"
+                  >
                     <div className="flex-1">
                       <div className="font-medium text-gray-900">
                         {player.player_info?.name || player.player_id}
                       </div>
                       <div className="text-xs text-gray-600">
                         {player.player_info?.team} • {player.player_info?.position}
-                        {player.player_info?.jersey_number && ` • #${player.player_info.jersey_number}`}
+                        {player.player_info?.jersey_number &&
+                          ` • #${player.player_info.jersey_number}`}
                       </div>
                     </div>
                     {player.player_info?.projection && (
@@ -395,11 +410,11 @@ export default function RosterPage({ params }: RosterPageProps) {
                 </h3>
                 <button
                   onClick={() => {
-                    const availableIRSlots = getAvailableSlots().filter(s => s.type === 'ir');
+                    const availableIRSlots = getAvailableSlots().filter((s) => s.type === 'ir')
                     if (availableIRSlots.length > 0) {
-                      openPlayerSearchForSlot(availableIRSlots[0]);
+                      openPlayerSearchForSlot(availableIRSlots[0])
                     } else {
-                      openPlayerSearchForSlot();
+                      openPlayerSearchForSlot()
                     }
                   }}
                   className="text-green-600 hover:text-green-700 p-1 rounded-md hover:bg-green-50"
@@ -411,14 +426,18 @@ export default function RosterPage({ params }: RosterPageProps) {
               <div className="space-y-2">
                 {irRoster.length > 0 ? (
                   irRoster.map((player) => (
-                    <div key={player.player_id} className="flex justify-between items-center py-2 px-3 bg-gray-50 rounded-md">
+                    <div
+                      key={player.player_id}
+                      className="flex justify-between items-center py-2 px-3 bg-gray-50 rounded-md"
+                    >
                       <div className="flex-1">
                         <div className="font-medium text-gray-900">
                           {player.player_info?.name || player.player_id}
                         </div>
                         <div className="text-xs text-gray-600">
                           {player.player_info?.team} • {player.player_info?.position}
-                          {player.player_info?.jersey_number && ` • #${player.player_info.jersey_number}`}
+                          {player.player_info?.jersey_number &&
+                            ` • #${player.player_info.jersey_number}`}
                         </div>
                       </div>
                       {player.player_info?.projection && (
@@ -476,8 +495,8 @@ export default function RosterPage({ params }: RosterPageProps) {
       <PlayerSearchModal
         isOpen={isPlayerSearchOpen}
         onClose={() => {
-          setIsPlayerSearchOpen(false);
-          setDefaultSlot(null);
+          setIsPlayerSearchOpen(false)
+          setDefaultSlot(null)
         }}
         onSelectPlayer={handleAddPlayer}
         availableSlots={getAvailableSlots()}
@@ -485,5 +504,5 @@ export default function RosterPage({ params }: RosterPageProps) {
         defaultSlot={defaultSlot}
       />
     </div>
-  );
+  )
 }

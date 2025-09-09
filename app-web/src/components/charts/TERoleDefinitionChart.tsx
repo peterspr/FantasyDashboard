@@ -1,6 +1,6 @@
-'use client';
+'use client'
 
-import React from 'react';
+import React from 'react'
 import {
   AreaChart,
   Area,
@@ -10,54 +10,54 @@ import {
   Tooltip,
   ResponsiveContainer,
   Legend,
-} from 'recharts';
-import { formatPercentage, formatNumber } from '@/lib/utils';
+} from 'recharts'
+import { formatPercentage, formatNumber } from '@/lib/utils'
 
 interface TEDataPoint {
-  week: number;
-  receiving_snap_pct?: number;
-  blocking_snap_pct?: number;
-  route_pct?: number;
-  target_share?: number;
-  targets_pred?: number;
-  snap_pct?: number;
+  week: number
+  receiving_snap_pct?: number
+  blocking_snap_pct?: number
+  route_pct?: number
+  target_share?: number
+  targets_pred?: number
+  snap_pct?: number
 }
 
 interface TERoleDefinitionChartProps {
-  data: any[];
-  usageData?: any[];
-  title?: string;
+  data: any[]
+  usageData?: any[]
+  title?: string
 }
 
 export function TERoleDefinitionChart({
   data,
   usageData = [],
-  title = "Role Definition & Usage",
+  title = 'Role Definition & Usage',
 }: TERoleDefinitionChartProps) {
   if (!data || data.length === 0) {
     return (
       <div className="flex items-center justify-center h-64 text-gray-500">
         No TE data available
       </div>
-    );
+    )
   }
 
   // Create usage data map for easier lookup
-  const usageMap = new Map(usageData.map(item => [item.week, item]));
+  const usageMap = new Map(usageData.map((item) => [item.week, item]))
 
   // Transform data for the chart
-  const chartData: TEDataPoint[] = data.map(item => {
-    const components = item.components || {};
-    const week = item.week;
-    const usage = usageMap.get(week);
+  const chartData: TEDataPoint[] = data.map((item) => {
+    const components = item.components || {}
+    const week = item.week
+    const usage = usageMap.get(week)
 
-    const snapPct = usage?.snap_pct || 0;
-    const routePct = usage?.route_pct || 0;
-    
+    const snapPct = usage?.snap_pct || 0
+    const routePct = usage?.route_pct || 0
+
     // Estimate receiving vs blocking snaps
     // If route % is high relative to snap %, more receiving role
-    const receivingSnapPct = routePct > 0 ? Math.min(snapPct, routePct * 1.1) : snapPct * 0.6;
-    const blockingSnapPct = Math.max(0, snapPct - receivingSnapPct);
+    const receivingSnapPct = routePct > 0 ? Math.min(snapPct, routePct * 1.1) : snapPct * 0.6
+    const blockingSnapPct = Math.max(0, snapPct - receivingSnapPct)
 
     return {
       week,
@@ -67,29 +67,24 @@ export function TERoleDefinitionChart({
       target_share: usage?.target_share || 0,
       targets_pred: components.targets_pred || 0,
       snap_pct: snapPct,
-    };
-  });
+    }
+  })
 
   return (
     <div className="space-y-4">
-      {title && (
-        <h3 className="text-lg font-semibold text-gray-900">{title}</h3>
-      )}
-      
+      {title && <h3 className="text-lg font-semibold text-gray-900">{title}</h3>}
+
       <ResponsiveContainer width="100%" height={350}>
-        <AreaChart
-          data={chartData}
-          margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
-        >
+        <AreaChart data={chartData} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
           <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-          
+
           <XAxis
             dataKey="week"
             axisLine={false}
             tickLine={false}
             tick={{ fontSize: 12, fill: '#6b7280' }}
           />
-          
+
           <YAxis
             axisLine={false}
             tickLine={false}
@@ -97,12 +92,12 @@ export function TERoleDefinitionChart({
             tickFormatter={(value) => formatPercentage(value)}
             domain={[0, 1]}
           />
-          
+
           <Tooltip
             content={({ active, payload, label }) => {
               if (active && payload && payload.length) {
-                const data = chartData.find(d => d.week === label);
-                if (!data) return null;
+                const data = chartData.find((d) => d.week === label)
+                if (!data) return null
 
                 return (
                   <div className="bg-white p-3 border border-gray-200 rounded-lg shadow-lg">
@@ -134,9 +129,9 @@ export function TERoleDefinitionChart({
                       </div>
                     </div>
                   </div>
-                );
+                )
               }
-              return null;
+              return null
             }}
           />
 
@@ -195,5 +190,5 @@ export function TERoleDefinitionChart({
         <p>• Higher receiving snap % and route % = better fantasy outlook</p>
       </div>
     </div>
-  );
+  )
 }

@@ -3,9 +3,10 @@
 export function EnvBadge() {
   const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
   const env = apiUrl.includes('localhost') ? 'development' : 'production'
-  
-  const badgeColor = env === 'development' ? 'bg-green-100 text-green-800' : 'bg-blue-100 text-blue-800'
-  
+
+  const badgeColor =
+    env === 'development' ? 'bg-green-100 text-green-800' : 'bg-blue-100 text-blue-800'
+
   return (
     <div>
       <p className="text-gray-600 mb-2">Current environment:</p>
